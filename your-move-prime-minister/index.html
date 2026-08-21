@@ -3,125 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#07182f" />
+  <meta name="theme-color" content="#061326" />
   <title>Your Move, Prime Minister</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/DanielJohnsonXYZ/git_test@your-move-prime-minister/styles.css" />
+  <style>
+    html,body{margin:0;min-height:100%;background:#061326;color:#f5e8ca;font-family:system-ui,-apple-system,sans-serif}body{display:grid;place-items:center}.loading{text-align:center;padding:24px}.crest{font-size:34px;color:#d7ad53}.name{font-family:Georgia,serif;font-weight:700;letter-spacing:.04em;margin-top:8px}.status{font-size:12px;color:#9aaabd;margin-top:8px}
+  </style>
 </head>
 <body>
-  <main class="app">
-    <header class="brand">
-      <h1>YOUR MOVE, PRIME MINISTER</h1>
-      <small id="saveStatus">Playable MVP</small>
-    </header>
-
-    <section id="startScreen" class="screen active">
-      <div class="hero">
-        <div class="crown">♛</div>
-        <h2>Your Move,<br>Prime Minister</h2>
-        <div class="tag">Think you could do better?</div>
-      </div>
-      <div class="intro-card">
-        <h3>You won the election.</h3>
-        <p>You have a majority of <b>24 seats</b>, five years to prove yourself, and a country full of problems. Pick three promises before entering No. 10.</p>
-        <div class="promises" id="promiseGrid"></div>
-        <button id="startBtn" class="primary" disabled>Choose 3 promises</button>
-      </div>
-    </section>
-
-    <section id="gameScreen" class="screen">
-      <div class="stats">
-        <div class="stat approval"><div class="label">👍 Approval</div><div class="value" id="approvalVal">52%</div><div class="bar"><span id="approvalBar"></span></div></div>
-        <div class="stat economy"><div class="label">📈 Economy</div><div class="value" id="economyVal">61</div><div class="bar"><span id="economyBar"></span></div></div>
-        <div class="stat britain"><div class="label">❤️ Britain</div><div class="value" id="britainVal">48</div><div class="bar"><span id="britainBar"></span></div></div>
-        <div class="stat power"><div class="label">♛ Power</div><div class="value" id="powerVal">73</div><div class="bar"><span id="powerBar"></span></div></div>
-      </div>
-      <div class="termbar"><span id="turnText">Year 1 • Month 1</span><span class="majority">Majority: <span id="majorityVal">24</span></span></div>
-
-      <div class="game-layout">
-        <div>
-          <article class="event-card" id="eventCard">
-            <div class="event-art" id="eventArt">
-              <div class="event-icon" id="eventIcon">🏥</div>
-              <div class="event-label"><div class="kicker" id="eventCategory">Urgent</div><h2 id="eventTitle">NHS STRIKE</h2></div>
-            </div>
-            <div class="event-body">
-              <p id="eventText"></p>
-              <div class="adviser"><div class="avatar" id="adviserAvatar">£</div><div><b id="adviserName">The Chancellor</b><br><span id="adviserText"></span></div></div>
-              <div class="choices" id="choices"></div>
-            </div>
-          </article>
-
-          <div class="feedback" id="feedback">
-            <b id="feedbackTitle">Decision made.</b>
-            <div id="feedbackText" style="margin-top:4px;color:#c8d3e2"></div>
-            <div class="effects" id="effects"></div>
-            <button id="continueBtn" class="primary">Continue →</button>
-          </div>
-
-          <div class="paper" id="paper">
-            <div class="mast">THE DAILY HERALD</div>
-            <div class="headline" id="headline">PM CAVES TO DOCTORS</div>
-            <div class="deck" id="deck">Government forced into costly settlement.</div>
-          </div>
-
-          <div class="vote-card" id="voteCard">
-            <div class="vote-title">Parliament vote • Live</div>
-            <h3 id="voteBill">Planning Reform Bill</h3>
-            <div class="votes">
-              <div><div class="muted">Aye</div><div class="vote-num aye" id="ayeNum">318</div></div>
-              <div class="passes" id="voteResult">BILL PASSES</div>
-              <div style="text-align:right"><div class="muted">No</div><div class="vote-num no" id="noNum">317</div></div>
-            </div>
-          </div>
-        </div>
-
-        <aside class="sidecol">
-          <div class="panel">
-            <h3>Public approval</h3>
-            <div id="regionMeters"></div>
-          </div>
-          <div class="panel" style="margin-top:12px">
-            <h3>Cabinet</h3>
-            <div class="cabinet-list" id="cabinetList"></div>
-          </div>
-          <div class="panel" style="margin-top:12px">
-            <h3>Manifesto</h3>
-            <div id="manifestoList" class="muted" style="font-size:13px;line-height:1.6"></div>
-          </div>
-        </aside>
-      </div>
-    </section>
-
-    <section id="endScreen" class="screen">
-      <div class="result-card end">
-        <div style="font-size:36px">🏛️</div>
-        <div class="muted">YOUR PREMIERSHIP</div>
-        <h2 id="endTitle">You survived the term.</h2>
-        <div class="grade" id="grade">B+</div>
-        <p id="endSummary" class="muted"></p>
-        <div class="score-grid" id="scoreGrid"></div>
-        <button id="restartBtn" class="primary">Play again</button>
-      </div>
-    </section>
-  </main>
-
-  <div class="bottomnav hidden" id="bottomNav">
-    <div class="inner">
-      <button class="navbtn active" data-nav="no10"><span>🚪</span>No.10</button>
-      <button class="navbtn" data-nav="parliament"><span>🏛️</span>Parliament</button>
-      <button class="navbtn" data-nav="nation"><span>🗺️</span>Nation</button>
-      <button class="navbtn" data-nav="cabinet"><span>👥</span>Cabinet</button>
-      <button class="navbtn" data-nav="events"><span>🗓️</span>Events</button>
-    </div>
-  </div>
-  <div class="toast" id="toast"></div>
-
-<script src="https://cdn.jsdelivr.net/gh/DanielJohnsonXYZ/git_test@your-move-prime-minister/events.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/DanielJohnsonXYZ/git_test@your-move-prime-minister/events-1.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/DanielJohnsonXYZ/git_test@your-move-prime-minister/events-2.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/DanielJohnsonXYZ/git_test@your-move-prime-minister/events-3.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/DanielJohnsonXYZ/git_test@your-move-prime-minister/events-4.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/DanielJohnsonXYZ/git_test@your-move-prime-minister/events-5.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/DanielJohnsonXYZ/git_test@your-move-prime-minister/app.js"></script>
+  <div class="loading"><div class="crest">♛</div><div class="name">YOUR MOVE, PRIME MINISTER</div><div class="status">Opening the red box…</div></div>
+  <script>
+    (async()=>{
+      const api='https://api.github.com/repos/DanielJohnsonXYZ/git_test/contents/index.html?ref=your-move-prime-minister';
+      const assetBase='https://cdn.jsdelivr.net/gh/DanielJohnsonXYZ/git_test@your-move-prime-minister/';
+      try{
+        const response=await fetch(api,{headers:{'Accept':'application/vnd.github+json'}});
+        if(!response.ok) throw new Error('Could not load game');
+        const data=await response.json();
+        const html=decodeURIComponent(escape(atob(data.content.replace(/\n/g,''))));
+        const withBase=html.replace('<head>','<head><base href="'+assetBase+'">');
+        document.open();document.write(withBase);document.close();
+      }catch(error){
+        document.querySelector('.status').textContent='The game could not load. Refresh to try again.';
+      }
+    })();
+  </script>
 </body>
 </html>
