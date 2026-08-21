@@ -4,84 +4,27 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#061326" />
-  <meta name="description" content="Your Move, Prime Minister — learn how UK government works by trying to run it." />
-  <base href="https://cdn.jsdelivr.net/gh/DanielJohnsonXYZ/git_test@aa1a832aa404f364636f8b0acd24f6449f2528fb/" />
   <title>Your Move, Prime Minister</title>
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="shell.css" />
-  <link rel="stylesheet" href="education-ui.css" />
-  <link rel="stylesheet" href="ux3.css" />
+  <style>
+    html,body{margin:0;min-height:100%;background:#061326;color:#f5e8ca;font-family:system-ui,-apple-system,sans-serif}body{display:grid;place-items:center}.loading{text-align:center;padding:24px}.crest{font-size:34px;color:#d7ad53}.name{font-family:Georgia,serif;font-weight:700;letter-spacing:.04em;margin-top:8px}.status{font-size:12px;color:#9aaabd;margin-top:8px}
+  </style>
 </head>
 <body>
-  <main class="app">
-    <header class="brand" id="topBrand">
-      <button class="brand-mark" id="homeBtn" aria-label="Return to title"><span class="mini-crest">♛</span><span>YOUR MOVE, PRIME MINISTER</span></button>
-      <span class="beta-pill">BETA</span>
-    </header>
-
-    <section id="titleScreen" class="screen active title-screen">
-      <div class="title-stage">
-        <div class="westminster-silhouette" aria-hidden="true"><span class="big-ben"></span></div>
-        <div class="royal-seal"><span>♛</span></div>
-        <div class="eyebrow">A GAME OF POWER, POLICY & CONSEQUENCES</div>
-        <h1 class="game-title">YOUR MOVE,<br><em>PRIME MINISTER</em></h1>
-        <p class="title-tagline">Think you could do better?</p>
-        <p class="title-copy">You have five years. Keep the country working, keep Parliament with you, and discover what a Prime Minister can actually control.</p>
-        <div class="title-actions"><button id="takeOfficeBtn" class="primary hero-button">Take office →</button><button id="howBtn" class="ghost-button">How it works</button></div>
-      </div>
-    </section>
-
-    <section id="electionScreen" class="screen setup-screen">
-      <div class="setup-progress"><b>1</b><span></span><i>2</i><span></span><i>3</i></div>
-      <div class="victory-panel">
-        <div class="victory-icon">✓</div><div><div class="eyebrow dark">GENERAL ELECTION</div><h2>You won.</h2></div>
-        <p>The King will ask you to form a government. You have enough MPs to govern — provided they keep voting with you.</p>
-        <div class="majority-card"><small>COMMONS MAJORITY</small><span>Lose 25 MPs on a vote and your government can be defeated.</span><strong>24</strong></div>
-      </div>
-      <div class="micro-lesson"><span>🏛️</span><div><b>Your first lesson</b><p>Winning an election does not give you unlimited power. Most important laws and taxes still need Parliament.</p></div></div>
-      <button id="electionNextBtn" class="primary">Choose your promises →</button>
-    </section>
-
-    <section id="manifestoScreen" class="screen setup-screen">
-      <div class="setup-progress"><i>1</i><span class="done"></span><b>2</b><span></span><i>3</i></div>
-      <div class="manifesto-card">
-        <div class="section-kicker">YOUR MANDATE</div><h2>What did you promise?</h2>
-        <p>Choose three. These are the things voters will judge you on even when events drag your government elsewhere.</p>
-        <div class="selection-counter"><span id="promiseCount">0</span>/3</div>
-        <div class="promises" id="promiseGrid"></div>
-        <div class="custom-promise"><label for="customPromise">Write your own promise <span>experimental</span></label><div><input id="customPromise" maxlength="80" placeholder="e.g. Make childcare affordable"/><button id="addPromiseBtn" type="button">Add</button></div></div>
-        <button id="startBtn" class="primary" disabled>Choose 3 promises</button>
-      </div>
-    </section>
-
-    <section id="arrivalScreen" class="screen arrival-screen">
-      <div class="setup-progress light-progress"><i>1</i><span class="done"></span><i>2</i><span class="done"></span><b>3</b></div>
-      <div class="arrival-door"><div class="door-number">10</div><div class="door-slot">FIRST LORD OF THE TREASURY</div><div class="door-knob"></div></div>
-      <div class="arrival-copy"><div class="eyebrow">10 DOWNING STREET</div><h2>The country is waiting.</h2><p>Your first red box is already on the desk. Every issue will show you what happened, who really controls what, and which interests are pulling in different directions.</p><button id="openBoxBtn" class="primary red-action">Open the red box →</button></div>
-    </section>
-
-    <section id="gameScreen" class="screen game-screen-v3">
-      <div class="quiet-news"><span>LIVE</span><div id="tickerText">Markets await the government's first Budget</div></div>
-      <div class="term-strip"><div><small>TERM</small><b id="turnText">Month 1 of 60</b></div><div class="term-line"><span id="termProgressBar"></span></div><div class="term-end"><small>ELECTION</small><b id="electionCountdown">59 months</b></div></div>
-      <div class="essential-status"><button class="status-pill" id="pollsPill"><small>POLLS</small><b id="approvalVal">52%</b></button><button class="status-pill"><small>MAJORITY</small><b id="majorityVal">24</b></button><button class="status-pill context-only hidden" id="treasuryPill"><small>TREASURY</small><b id="treasurySide">55</b></button></div>
-
-      <article class="case-file" id="eventCard">
-        <div class="case-top"><div class="case-icon" id="eventIcon">🏥</div><div><div class="case-kicker" id="eventCategory">CRISIS</div><h1 id="eventTitle">NHS STRIKE</h1></div><div class="case-number" id="caseNumber">01</div></div>
-        <section class="case-stage active" id="stageSituation"><div class="stage-label">THE SITUATION</div><p class="big-brief" id="eventText"></p><div class="goal-card"><small>YOUR JOB</small><p id="issueGoal">Find a response the country can live with.</p></div><button class="primary stage-next" id="situationNextBtn">Why can't I just fix it? →</button></section>
-        <section class="case-stage" id="stageSystem"><button class="text-back" data-back="stageSituation">← Situation</button><div class="stage-label">HOW POWER ACTUALLY WORKS</div><h2>Who controls this?</h2><p id="systemExplainer"></p><div class="power-map" id="powerMap"></div><div class="control-box-v3"><small>WHAT YOU CAN ACTUALLY DO</small><p id="controlText"></p></div><button class="primary stage-next" id="systemNextBtn">Ask my advisers →</button></section>
-        <section class="case-stage" id="stageAdvice"><button class="text-back" data-back="stageSystem">← How it works</button><div class="stage-label">CABINET ROOM</div><h2>Ask two advisers.</h2><p class="stage-intro">They are not neutral. Each one is optimising for something different.</p><div class="adviser-choices" id="adviserChoices"></div><div class="advice-counter"><b id="adviceCount">0</b>/2 consulted</div><button class="primary stage-next" id="adviceNextBtn" disabled>Make the decision →</button></section>
-        <section class="case-stage" id="stageDecision"><button class="text-back" data-back="stageAdvice">← Advisers</button><div class="stage-label">YOUR MOVE</div><h2>What do you do?</h2><p class="stage-intro">Known costs are shown. Political and economic reactions are forecasts, not guarantees.</p><div class="choices neutral-choices" id="choices"></div></section>
-      </article>
-
-      <section class="outcome-flow hidden" id="outcomeFlow"><div class="outcome-step active" id="outcomeReaction"><div class="stage-label">THE REACTION</div><h2 id="feedbackTitle"></h2><p id="feedbackText"></p><div class="reaction-grid" id="groupReactions"></div><button class="primary" id="reactionNextBtn">What changed? →</button></div><div class="outcome-step" id="outcomeNumbers"><div class="stage-label">WHAT CHANGED NOW</div><h2>Immediate effects</h2><div class="effects-v3" id="effects"></div><p class="uncertainty-note">These numbers describe the game state, not a claim that real political outcomes are perfectly predictable.</p><button class="primary" id="numbersNextBtn">See how the story lands →</button></div><div class="outcome-step" id="outcomeMedia"><div class="stage-label">THE SAME DECISION, THREE STORIES</div><div class="media-frames" id="mediaFrames"></div><button class="primary" id="continueBtn">Next red box →</button></div></section>
-      <details class="red-box-archive" id="archiveWrap"><summary>Red Box archive <span id="archiveCount">0 decisions</span></summary><div id="archiveList"></div></details>
-      <div class="hidden legacy-holders"><div id="economyVal"></div><div id="economyBar"></div><div id="britainVal"></div><div id="britainBar"></div><div id="powerVal"></div><div id="powerBar"></div><div id="approvalBar"></div><div id="decisionCount"></div><div id="manifestoList"></div><div id="regionMeters"></div><div id="cabinetList"></div><div id="lessonSummary"></div><div id="stakeholders"></div><div id="adviserAvatar"></div><div id="adviserName"></div><div id="adviserText"></div><div id="revealChoicesBtn"></div><div id="decisionArea"></div><div id="feedback"></div><div id="paper"></div><div id="headline"></div><div id="deck"></div><div id="voteCard"></div><div id="voteBill"></div><div id="ayeNum"></div><div id="noNum"></div><div id="voteResult"></div></div>
-    </section>
-
-    <section id="endScreen" class="screen verdict-screen"><div class="result-card end"><div class="result-ribbon">ELECTION NIGHT</div><div class="result-crest">🏛️</div><div class="muted">YOUR PREMIERSHIP</div><h2 id="endTitle"></h2><div class="grade-wrap"><span>YOUR LEGACY</span><div class="grade" id="grade"></div></div><p id="endSummary" class="end-summary"></p><div class="score-grid" id="scoreGrid"></div><div class="end-actions"><button id="shareBtn" class="primary">Share my result</button><button id="restartBtn" class="ghost-button dark-ghost">Play again</button></div></div></section>
-  </main>
-  <div class="modal hidden" id="howModal"><div class="modal-backdrop" id="modalBackdrop"></div><div class="modal-card"><button id="closeHowBtn" class="modal-close">×</button><div class="section-kicker">HOW IT WORKS</div><h2>Learn government by trying to run it.</h2><p>Every red box starts simple. First understand the problem. Then discover who controls what. Consult advisers with competing incentives. Finally make the call and live with the consequences.</p><button id="modalPlayBtn" class="primary">Take office →</button></div></div>
-  <div class="toast" id="toast"></div>
-<script src="events.js"></script><script src="events-1.js"></script><script src="events-2.js"></script><script src="events-3.js"></script><script src="events-4.js"></script><script src="events-5.js"></script><script src="education.js"></script><script src="app.js"></script><script src="shell.js"></script>
+  <div class="loading"><div class="crest">♛</div><div class="name">YOUR MOVE, PRIME MINISTER</div><div class="status">Opening the red box…</div></div>
+  <script>
+    (async()=>{
+      const commit='da4dd78543d711471c4d09825e56430125f3f56c';
+      const base=`https://cdn.jsdelivr.net/gh/DanielJohnsonXYZ/git_test@${commit}/`;
+      try{
+        const response=await fetch(base+'index.html',{cache:'no-store'});
+        if(!response.ok) throw new Error('Could not load game');
+        let html=await response.text();
+        html=html.replace('<head>','<head><base href="'+base+'">');
+        document.open();document.write(html);document.close();
+      }catch(error){
+        document.querySelector('.status').textContent='The game could not load. Refresh once to try again.';
+      }
+    })();
+  </script>
 </body>
 </html>
