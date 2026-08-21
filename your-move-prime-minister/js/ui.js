@@ -41,6 +41,26 @@ window.UI = (function () {
     return el;
   }
   function node(x) { return typeof x === 'object' ? x : document.createTextNode(String(x)); }
+
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  function svg(tag, props) {
+    const el = document.createElementNS(SVGNS, tag);
+    if (props) {
+      Object.keys(props).forEach(function (k) {
+        const val = props[k];
+        if (val === null || val === undefined || val === false) return;
+        if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2).toLowerCase(), val);
+        else el.setAttribute(k, String(val));
+      });
+    }
+    for (let i = 2; i < arguments.length; i++) {
+      const kid = arguments[i];
+      if (kid === null || kid === undefined || kid === false) continue;
+      if (Array.isArray(kid)) kid.forEach(function (x) { x && el.appendChild(x); });
+      else el.appendChild(typeof kid === 'object' ? kid : document.createTextNode(String(kid)));
+    }
+    return el;
+  }
   function $(id) { return document.getElementById(id); }
   function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
 
@@ -278,6 +298,8 @@ window.UI = (function () {
     const v = $('view-briefing');
     clear(v);
     const s = E.state;
+    const agendaCost = s.agenda.filter(a => !a.done)
+      .reduce(function (t, a) { return t + (a.cost || 0); }, 0);
 
     const agenda = h('ul', { class: 'agenda' });
     s.agenda.forEach(function (entry) {
@@ -286,11 +308,17 @@ window.UI = (function () {
       const done = !!entry.done;
       const affordable = s.actionsLeft >= (entry.cost || 0);
 
+      /* An agenda routinely costs more than three actions, which is the point —
+         but a card you cannot afford has to say so. It used to sit there greyed
+         out still reading "1 action", so clicking it simply did nothing. */
+      const cost = entry.cost || 0;
       const meta = h('div', { class: 'agenda-meta' },
         entry.urgent && !done ? h('span', { class: 'chip chip-urgent', text: 'Urgent' }) : null,
         card.promise ? h('span', { class: 'chip chip-promise', text: 'Your promise' }) : null,
         done ? h('span', { class: 'chip chip-done', text: 'Decided' }) : null,
-        !done ? h('span', { class: 'cost', text: (entry.cost || 0) + ' action' + ((entry.cost || 0) === 1 ? '' : 's') }) : null);
+        !done && affordable ? h('span', { class: 'cost', text: cost + ' action' + (cost === 1 ? '' : 's') }) : null,
+        !done && !affordable ? h('span', { class: 'chip chip-unaffordable',
+          text: 'Needs ' + cost + ' action' + (cost === 1 ? '' : 's') + ' — you have ' + s.actionsLeft }) : null);
 
       agenda.appendChild(h('li', null,
         h('button', {
@@ -327,7 +355,11 @@ window.UI = (function () {
         h('p', { class: 'eyebrow', text: when(s.turn).toUpperCase() + ' · QUARTER ' + s.turn + ' OF ' + E.TURNS }),
         h('h1', { class: 'screen-title', text: 'Britain needs your attention' }),
         h('div', { class: 'actions-left' }, actionPips(s.actionsLeft, 3),
-          h('span', { text: s.actionsLeft + ' of 3 actions left this quarter' }))),
+          h('span', { text: s.actionsLeft + ' of 3 actions left this quarter' }),
+          agendaCost > s.actionsLeft
+            ? h('span', { class: 'overcommitted',
+                text: '· everything here would take ' + agendaCost + '. You cannot do it all.' })
+            : null)),
       h('section', { class: 'block' },
         h('h2', { class: 'block-title', text: 'On your desk' }), agenda),
       h('section', { class: 'block' },
@@ -610,9 +642,107 @@ window.UI = (function () {
 
   /* -------------------------------------------------------------- britain */
 
+  /* A stylised board of Britain rather than a map traced from data — six places
+     you can point at. Each is filled by how it is actually doing, carries its
+     own name and number, and shows what you would notice if you went there. */
+  const MAP_SHAPES = {
+    Scotland: { d: 'M78,8 L118,4 L132,30 L124,58 L104,70 L80,66 L62,44 L66,20 Z', cx: 96,  cy: 36 },
+    North:    { d: 'M62,44 L80,66 L104,70 L124,58 L136,76 L132,104 L104,116 L72,106 L54,80 Z', cx: 95, cy: 86 },
+    Wales:    { d: 'M54,80 L72,106 L74,124 L62,146 L40,144 L30,118 L38,92 Z', cx: 52, cy: 118 },
+    Midlands: { d: 'M72,106 L104,116 L132,104 L146,124 L140,150 L104,160 L76,150 L74,124 Z', cx: 107, cy: 132 },
+    London:   { d: 'M140,150 L158,146 L166,164 L150,174 L136,166 Z',
+                cx: 151, cy: 159, labelX: 174, labelY: 156, anchor: 'start', leader: 'M167,160 L172,158' },
+    South:    { d: 'M62,146 L76,150 L104,160 L136,166 L150,174 L138,200 L100,212 L66,196 L52,172 Z', cx: 100, cy: 180 }
+  };
+
+  /* Fills are light enough to take dark labels, and colour is never the only
+     signal: every region also states its name, number and status in words. */
+  const CONDITION_FILL = {
+    Critical: '#c96a6a', Poor: '#cf9256', Strained: '#c9b45f',
+    Steady: '#6fbf90', Strong: '#8ad6a8'
+  };
+
+  function britainMap() {
+    const board = svg('svg', {
+      viewBox: '0 0 232 220', class: 'uk-map',
+      role: 'group', 'aria-label': 'Map of Britain. Each region is a button.'
+    });
+
+    E.regions().forEach(function (r) {
+      const shape = MAP_SHAPES[r.name];
+      if (!shape) return;
+      const signs = r.signs.map(function (x) { return x.label; }).join('; ');
+      const n = Math.abs(r.delta), pt = ' point' + (n === 1 ? '' : 's');
+      const trend = r.delta > 0 ? 'up ' + n + pt : r.delta < 0 ? 'down ' + n + pt : 'unchanged';
+      const group = svg('g', {
+        class: 'map-region', role: 'button', tabindex: '0',
+        'aria-label': r.name + ': ' + r.approval + '% approval, ' + trend +
+                      ' since last quarter. Conditions ' + r.status.toLowerCase() +
+                      (signs ? '. ' + signs : '') + '.',
+        onclick: function () { openRegion(r.name); },
+        onkeydown: function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRegion(r.name); }
+        }
+      });
+      group.appendChild(svg('path', { d: shape.d, class: 'map-shape',
+        fill: CONDITION_FILL[r.status] || '#8aa0b8' }));
+      if (shape.leader) group.appendChild(svg('path', { d: shape.leader, class: 'map-leader' }));
+      const lx = shape.labelX === undefined ? shape.cx : shape.labelX;
+      const ly = shape.labelY === undefined ? shape.cy : shape.labelY;
+      const anchor = shape.anchor || 'middle';
+      const outside = shape.labelX !== undefined;
+      group.appendChild(svg('text', { x: lx, y: ly,
+        class: 'map-name' + (outside ? ' outside' : ''), 'text-anchor': anchor }, r.name));
+      group.appendChild(svg('text', { x: lx, y: ly + 9,
+        class: 'map-value' + (outside ? ' outside' : ''), 'text-anchor': anchor }, r.approval + '%'));
+      if (r.signs.length) {
+        group.appendChild(svg('text', { x: lx, y: ly + 20, class: 'map-signs',
+          'text-anchor': anchor }, r.signs.map(function (x) { return x.icon; }).join(' ')));
+      }
+      board.appendChild(group);
+    });
+    return board;
+  }
+
+  function conditionLegend() {
+    const wrap = h('ul', { class: 'legend' });
+    ['Critical', 'Poor', 'Strained', 'Steady', 'Strong'].forEach(function (k) {
+      wrap.appendChild(h('li', null,
+        h('span', { class: 'swatch', style: 'background:' + CONDITION_FILL[k], 'aria-hidden': 'true' }),
+        h('span', { text: k })));
+    });
+    return wrap;
+  }
+
+  function openRegion(name) {
+    const r = E.regionDetail(name);
+    const pts = function (n) { return n + ' point' + (n === 1 ? '' : 's'); };
+    const trend = r.delta > 0 ? 'Up ' + pts(r.delta) + ' since last quarter'
+                : r.delta < 0 ? 'Down ' + pts(Math.abs(r.delta)) + ' since last quarter'
+                : 'Unchanged since last quarter';
+    openDialog(r.name, [
+      h('p', { class: 'region-story', text: r.story }),
+      h('ul', { class: 'arithmetic light' },
+        h('li', null, h('span', 'Approval here'), h('b', { text: r.approval + '%' })),
+        h('li', null, h('span', 'Trend'), h('b', { text: trend })),
+        h('li', null, h('span', 'Conditions'), h('b', { text: r.status }))),
+      r.signs.length ? h('h3', { text: 'What you would notice' }) : null,
+      r.signs.length ? h('ul', { class: 'signs' }, r.signs.map(function (x) {
+        return h('li', null, icon(x.icon), h('span', { text: x.label }));
+      })) : null,
+      h('h3', { text: 'What this place cares about' }),
+      h('ul', { class: 'signs drivers' }, r.drivers.map(function (d) {
+        return h('li', null, h('b', { text: d.name }), h('span', { text: d.value + '/100' }));
+      })),
+      h('div', { class: 'dialog-actions' },
+        h('button', { type: 'button', class: 'btn primary', onclick: closeDialog }, 'Close'))
+    ]);
+  }
+
   function renderBritain() {
     const v = $('view-britain');
     clear(v);
+
     const list = h('ul', { class: 'indicators' });
     E.britain().forEach(function (r) {
       list.appendChild(h('li', { class: 'indicator' },
@@ -624,21 +754,16 @@ window.UI = (function () {
           h('span', { class: 'meter-fill', style: 'width:' + r.value + '%' }))));
     });
 
-    const regions = h('ul', { class: 'regions' });
-    Object.keys(E.state.regions).forEach(function (name) {
-      const val = Math.round(E.state.regions[name]);
-      regions.appendChild(h('li', null, h('b', { text: name }),
-        h('span', { text: val + '% approval' })));
-    });
-
     v.appendChild(h('div', { class: 'britain' },
       h('header', { class: 'screen-head' },
         h('p', { class: 'eyebrow', text: 'THE COUNTRY · ' + when(E.state.turn).toUpperCase() }),
         h('h1', { class: 'screen-title', text: 'Britain' }),
-        h('p', { class: 'lede', text: 'Worst first. Every reading points the same way: higher is better.' })),
-      list,
-      h('h2', { class: 'block-title', text: 'Approval by region' }),
-      regions));
+        h('p', { class: 'lede', text: 'Six places, each with its own priorities. Pick one to see what is happening there.' })),
+      h('div', { class: 'map-wrap' }, britainMap()),
+      conditionLegend(),
+      h('h2', { class: 'block-title', text: 'The country as a whole' }),
+      h('p', { class: 'muted small', text: 'Worst first. Every reading points the same way: higher is better.' }),
+      list));
   }
 
   /* ----------------------------------------------------------- government */

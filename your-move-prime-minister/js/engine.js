@@ -47,6 +47,7 @@ window.Engine = (function () {
         crime: 46, energy: 44, transport: 45, migration: 42, defence: 55
       },
       regions: { Scotland: 49, North: 51, Midlands: 52, Wales: 50, London: 55, South: 52 },
+      prevRegions: null,
       promises: [],
       customPromises: [],
       actionsLeft: ACTIONS_PER_TURN,
@@ -133,6 +134,102 @@ window.Engine = (function () {
     return { key: key, name: INDICATOR_NAMES[key] || key, value: round(v), status: label(v),
              headline: r.headline, detail: r.detail };
   }
+
+  /* Regions are not six copies of the national mood. Each weights the country's
+     indicators differently, so a housing collapse guts London while Scotland
+     barely moves, and a transport failure is felt in the North first. This is
+     what makes the map worth looking at. */
+  const REGION_CHARACTER = {
+    Scotland: { drivers: { services: 0.30, energy: 0.30, health: 0.22, economy: 0.18 },
+                noun: 'Scotland' },
+    North:    { drivers: { transport: 0.32, economy: 0.28, health: 0.22, housing: 0.18 },
+                noun: 'the North' },
+    Midlands: { drivers: { economy: 0.34, transport: 0.24, health: 0.22, housing: 0.20 },
+                noun: 'the Midlands' },
+    Wales:    { drivers: { economy: 0.30, services: 0.28, health: 0.26, transport: 0.16 },
+                noun: 'Wales' },
+    London:   { drivers: { housing: 0.44, transport: 0.24, economy: 0.20, crime: 0.12 },
+                noun: 'London' },
+    South:    { drivers: { housing: 0.34, economy: 0.30, crime: 0.20, transport: 0.16 },
+                noun: 'the South' }
+  };
+
+  /* How the country feels in one place, on the same 0-100 scale as everything else. */
+  function localCondition(name) {
+    const c = REGION_CHARACTER[name];
+    if (!c) return 50;
+    let total = 0, weight = 0;
+    Object.keys(c.drivers).forEach(function (k) {
+      total += clamp(state.indicators[k]) * c.drivers[k];
+      weight += c.drivers[k];
+    });
+    return weight ? total / weight : 50;
+  }
+
+  /* Conditions you can see on the ground. These drive the markers on the map,
+     so investment shows up as cranes and neglect shows up as warnings. */
+  const REGION_SIGNS = [
+    { key: 'health',    when: v => v < 34, icon: '🏥', label: 'Hospitals overwhelmed' },
+    { key: 'health',    when: v => v > 62, icon: '💚', label: 'Waiting lists falling' },
+    { key: 'housing',   when: v => v < 32, icon: '🏚️', label: 'Housing unaffordable' },
+    { key: 'housing',   when: v => v > 58, icon: '🏗️', label: 'Building again' },
+    { key: 'economy',   when: v => v < 40, icon: '📉', label: 'Jobs being lost' },
+    { key: 'economy',   when: v => v > 70, icon: '📈', label: 'Business investing' },
+    { key: 'transport', when: v => v < 34, icon: '🚧', label: 'Transport failing' },
+    { key: 'transport', when: v => v > 62, icon: '🚄', label: 'Transport improving' },
+    { key: 'energy',    when: v => v < 34, icon: '🔌', label: 'Energy insecure' },
+    { key: 'energy',    when: v => v > 62, icon: '⚡', label: 'Clean power online' },
+    { key: 'crime',     when: v => v < 34, icon: '🚔', label: 'Crime rising' },
+    { key: 'crime',     when: v => v > 62, icon: '🛡️', label: 'Streets safer' },
+    { key: 'services',  when: v => v < 34, icon: '🏫', label: 'Schools and councils cut' },
+    { key: 'services',  when: v => v > 62, icon: '📚', label: 'Services improving' }
+  ];
+
+  function regionSigns(name) {
+    const c = REGION_CHARACTER[name];
+    if (!c) return [];
+    /* Only a place's two defining concerns produce signs, otherwise every region
+       shows the same national story and the map stops meaning anything. */
+    const dominant = Object.keys(c.drivers)
+      .sort(function (a, b) { return c.drivers[b] - c.drivers[a]; })
+      .slice(0, 2);
+    return REGION_SIGNS
+      .filter(function (sign) {
+        return dominant.indexOf(sign.key) >= 0 && sign.when(clamp(state.indicators[sign.key]));
+      })
+      .sort(function (a, b) { return c.drivers[b.key] - c.drivers[a.key]; })
+      .slice(0, 2);
+  }
+
+  /* Everything the map needs about one place. */
+  function regionDetail(name) {
+    const approval = clamp(state.regions[name]);
+    const before = state.prevRegions ? state.prevRegions[name] : approval;
+    const condition = localCondition(name);
+    const signs = regionSigns(name);
+    const c = REGION_CHARACTER[name] || { noun: name };
+    /* The sentence is derived from the same bands as the status word, so the
+       two can never disagree with each other on the same screen. */
+    const Noun = c.noun.charAt(0).toUpperCase() + c.noun.slice(1);
+    const STORIES = {
+      Critical: 'Things are visibly going wrong in ' + c.noun + '.',
+      Poor:     Noun + ' is in real trouble.',
+      Strained: Noun + ' is under strain.',
+      Steady:   'Life in ' + c.noun + ' is holding steady.',
+      Strong:   Noun + ' is doing well.'
+    };
+    const story = STORIES[label(condition)];
+    return {
+      name: name, approval: round(approval), delta: round(approval) - round(before),
+      condition: round(condition), status: label(condition),
+      signs: signs, story: story,
+      drivers: Object.keys(c.drivers || {}).map(function (k) {
+        return { name: INDICATOR_NAMES[k] || k, value: round(clamp(state.indicators[k])), weight: c.drivers[k] };
+      }).sort(function (a, b) { return b.weight - a.weight; })
+    };
+  }
+
+  function regions() { return Object.keys(state.regions).map(regionDetail); }
 
   /* Indicators the player sees on the Britain view, worst first so the thing
      that needs attention is at the top. */
@@ -696,10 +793,12 @@ window.Engine = (function () {
       }
     }
 
-    /* 6. Regions move with the national picture, with local character. */
+    /* 6. Regions move toward their own mix of national mood and local
+          conditions, so the map diverges instead of six dials tracking one. */
+    state.prevRegions = Object.assign({}, state.regions);
     Object.keys(state.regions).forEach(r => {
-      const bias = r === 'London' ? ind.housing * 0.02 : r === 'North' ? ind.transport * 0.02 : ind.economy * 0.015;
-      state.regions[r] = clamp(state.regions[r] + (state.approval - state.regions[r]) * 0.18 + bias - 0.4);
+      const target = clamp(state.approval * 0.55 + localCondition(r) * 0.45);
+      state.regions[r] = clamp(state.regions[r] + (target - state.regions[r]) * 0.30 + (rand() - 0.5) * 0.8);
     });
 
     /* 7. What the papers make of it. */
@@ -879,6 +978,7 @@ window.Engine = (function () {
     decide: decide, endTurn: endTurn, finish: finish,
     voteState: voteState, negotiate: negotiate, holdVote: holdVote, abandonBill: abandonBill,
     britain: britain, readout: readout, money: money, govSeats: govSeats,
+    regions: regions, regionDetail: regionDetail, localCondition: localCondition,
     save: save, load: load, hasSave: hasSave, clearSave: clearSave
   };
 })();
