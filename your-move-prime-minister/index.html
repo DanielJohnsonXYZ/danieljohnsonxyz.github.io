@@ -10,37 +10,28 @@
   </style>
 </head>
 <body>
-  <div class="loading"><div class="crest">♛</div><div class="name">YOUR MOVE, PRIME MINISTER</div><div class="status" id="loadStatus">Opening the red box…</div></div>
+  <div class="loading"><div class="crest">♛</div><div class="name">YOUR MOVE, PRIME MINISTER</div><div class="status">Opening the red box…</div></div>
   <script>
     (async()=>{
-      const owner='DanielJohnsonXYZ', repo='git_test', ref='your-move-prime-minister';
-      const files=['index.html','styles.css','shell.css','education-ui.css','events.js','events-1.js','events-2.js','events-3.js','events-4.js','events-5.js','education.js','app.js','shell.js'];
-      const apiPath=(file)=>`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(file)}?ref=${encodeURIComponent(ref)}`;
-      const decode=(b64)=>{
-        const binary=atob(b64.replace(/\n/g,''));
-        const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
-        return new TextDecoder('utf-8').decode(bytes);
-      };
+      const owner='DanielJohnsonXYZ',repo='git_test',ref='your-move-prime-minister';
+      const cssFiles=['styles.css','shell.css','education-ui.css'];
+      const jsFiles=['events.js','events-1.js','events-2.js','events-3.js','events-4.js','events-5.js','education.js','app.js','shell.js'];
+      const files=['index.html',...cssFiles,...jsFiles];
+      const url=file=>`https://api.github.com/repos/${owner}/${repo}/contents/${file}?ref=${encodeURIComponent(ref)}`;
+      const decode=b64=>{const binary=atob(b64.replace(/\n/g,''));return new TextDecoder().decode(Uint8Array.from(binary,c=>c.charCodeAt(0)));};
       try{
-        const responses=await Promise.all(files.map(async file=>{
-          const r=await fetch(apiPath(file),{headers:{Accept:'application/vnd.github+json'}});
-          if(!r.ok) throw new Error(`${file} failed (${r.status})`);
-          const data=await r.json();
-          return [file,decode(data.content)];
-        }));
-        const map=Object.fromEntries(responses);
-        let html=map['index.html'];
-        html=html
-          .replace('<link rel="stylesheet" href="styles.css" />',`<style>${map['styles.css']}</style>`)
-          .replace('<link rel="stylesheet" href="shell.css" />',`<style>${map['shell.css']}</style>`)
-          .replace('<link rel="stylesheet" href="education-ui.css" />',`<style>${map['education-ui.css']}</style>`);
-        const scripts=['events.js','events-1.js','events-2.js','events-3.js','events-4.js','events-5.js','education.js','app.js','shell.js'];
-        const scriptBlock=scripts.map(f=>`<script>\n${map[f].replace(/<\\/script/gi,'<\\\\/script')}\n<\\/script>`).join('');
-        html=html.replace(/<script src="events\.js"><\\/script><script src="events-1\.js"><\\/script><script src="events-2\.js"><\\/script><script src="events-3\.js"><\\/script><script src="events-4\.js"><\\/script><script src="events-5\.js"><\\/script><script src="education\.js"><\\/script><script src="app\.js"><\\/script><script src="shell\.js"><\\/script>/,scriptBlock);
-        document.open(); document.write(html); document.close();
+        const entries=await Promise.all(files.map(async file=>{const r=await fetch(url(file),{headers:{Accept:'application/vnd.github+json'}});if(!r.ok)throw new Error(`${file} failed (${r.status})`);const data=await r.json();return[file,decode(data.content)];}));
+        const source=Object.fromEntries(entries);
+        let html=source['index.html'];
+        cssFiles.forEach(file=>{html=html.replace(`<link rel="stylesheet" href="${file}" />`,`<style>\n${source[file]}\n</style>`);});
+        const oldScripts=jsFiles.map(file=>`<script src="${file}"><`+`/script>`).join('');
+        const newScripts=jsFiles.map(file=>`<script>\n${source[file].replace(/<\/script/gi,'<\\/script')}\n<`+`/script>`).join('');
+        if(!html.includes(oldScripts))throw new Error('game script bundle did not match');
+        html=html.replace(oldScripts,newScripts);
+        document.open();document.write(html);document.close();
       }catch(error){
-        document.querySelector('.loading').innerHTML=`<div class="crest">♛</div><div class="name">YOUR MOVE, PRIME MINISTER</div><p class="status error">The game could not load: ${error.message}. Refresh once, and if it persists the deployment needs fixing.</p>`;
         console.error(error);
+        document.querySelector('.loading').innerHTML=`<div class="crest">♛</div><div class="name">YOUR MOVE, PRIME MINISTER</div><p class="status error">The game could not load: ${error.message}. Refresh once to try again.</p>`;
       }
     })();
   <\/script>
