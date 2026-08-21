@@ -1,0 +1,16 @@
+{
+  "name": "Your Move, Prime Minister",
+  "short_name": "Prime Minister",
+  "description": "Run the country for five years. Think you could do better?",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#061326",
+  "theme_color": "#061326",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
