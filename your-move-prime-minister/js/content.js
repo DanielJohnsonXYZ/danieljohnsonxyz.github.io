@@ -157,8 +157,8 @@ addEvents(
  adviser:"Leader of the House", avatar:"👑", adviserText:"The Lords can delay and amend. Ultimately the elected Commons has the stronger democratic mandate, but this can still eat parliamentary time.",
  vote:true,bill:"Public Safety Bill",
  choices:[
-  {t:"Reject the amendments",s:"Fight the Lords",e:{power:2,approval:1},h:"COMMONS-LORDS SHOWDOWN",d:"Government sends the bill back unchanged.",voteBoost:-2},
-  {t:"Accept most changes",s:"Compromise",e:{power:1,britain:2},h:"PM CUTS DEAL WITH LORDS",d:"Ministers accept safeguards to secure the legislation.",voteBoost:7},
+  {t:"Reject the amendments",s:"Fight the Lords",e:{power:2,approval:1},h:"COMMONS-LORDS SHOWDOWN",d:"Government sends the bill back unchanged.",voteBoost:7},
+  {t:"Accept most changes",s:"Compromise",e:{power:1,britain:2},h:"PM CUTS DEAL WITH LORDS",d:"Ministers accept safeguards to secure the legislation.",voteBoost:-2},
   {t:"Abandon the bill",s:"Save parliamentary time",e:{power:-5,approval:-2},h:"FLAGSHIP BILL DROPPED",d:"Government gives up after months of parliamentary fighting."}
  ]
 }
@@ -253,6 +253,19 @@ const BRIEFINGS = {
   election:{explainer:"A UK general election is won constituency by constituency under first-past-the-post. National vote share matters, but where those votes are located determines the Commons majority.",control:"You can choose campaign strategy and defend your record. You cannot convert approval directly into seats; geography and opposition performance matter.",stakeholders:[["Voters","Choose their local MP","🗳️"],["Candidates","Win individual constituencies","📍"],["Party HQ","Target marginal seats","🎗️"],["Media","Shape the campaign agenda","📰"]]},
   eastern_europe_crisis:{explainer:"A major war in Europe is not something a British Prime Minister controls. Britain can shape sanctions, military support, diplomacy and alliances, but every choice has security, fiscal and escalation risks.",control:"You control the UK's diplomatic position and can propose military and financial support. Parliament, allies, military capacity, international law and the actions of the countries at war constrain what happens next.",stakeholders:[["Allies","A united and credible response","🤝"],["Armed forces","Clear objectives and sustainable commitments","🛡️"],["Treasury","Know the cost and duration","💷"],["Public","Security without uncontrolled escalation","👥"]]},
   shipping_shock:{explainer:"Britain is deeply connected to global trade. A conflict or blockage thousands of miles away can raise shipping, fuel and food costs at home before ministers have done anything.",control:"You cannot reopen an international trade route by decree. You can coordinate with allies, support affected firms and households, and change domestic policy to absorb some of the shock.",stakeholders:[["Consumers","Keep prices down","🛒"],["Businesses","Reliable imports and lower freight costs","🚢"],["Treasury","Avoid an open-ended bailout","💷"],["Allies","Coordinate a security response","🌍"]]},
+  leadership_rumours:{explainer:"A Prime Minister's authority rests on the perception that their own MPs will follow them. Rumours of a challenge can matter more than an actual challenge, because they change how loyally ministers and backbenchers behave in the meantime.",control:"You can change personnel, tone or policy. You cannot stop backbenchers talking to journalists, and denying a rumour often keeps it alive longer than ignoring it.",stakeholders:[["Backbench MPs","A leader who can win them the next election","🏛️"],["Cabinet","Clarity about who is really in charge","🧑‍💼"],["Media","A leadership story to report","📰"],["Party members","Unity rather than another contest","🎗️"]]},
+  winter_crisis:{explainer:"Health demand is seasonal: cold weather, flu and staff absence combine every winter, and a system with no spare capacity has nowhere to put the surge. Emergency funding buys capacity; cancelling other care simply moves the queue.",control:"You can fund extra beds and staff, or free up capacity by delaying other treatment. You cannot shorten winter, and money announced this week does not become trained staff overnight.",stakeholders:[["Patients in A&E","To be seen quickly","🧑‍🤝‍🧑"],["Patients waiting for routine care","Their operation is not cancelled again","🏥"],["NHS staff","Enough people on shift to cope","👩‍⚕️"],["Treasury","A bill that does not repeat every winter","💷"]]},
+  rent_protests:{explainer:"Rents are set by the balance of housing supply and demand, shaped over years, not weeks. A cap changes prices immediately but can change landlords' decisions to let property at all; building more houses works on the supply side but takes years to show up.",control:"You can regulate rent rises or fund and streamline building. You cannot conjure homes into existence, and landlords can respond to regulation by leaving the market.",stakeholders:[["Renters","Rents they can afford now","🔑"],["Landlords","A viable return on their property","🏘️"],["Builders","Demand and permission to build","🏗️"],["Councils","Fewer people presenting as homeless","🏛️"]]},
+  strike_wave:{explainer:"Public-sector pay disputes sit inside departmental budgets, inflation and comparability with other workers. Legislating a minimum service level changes the law rather than the dispute itself, and needs Parliament's consent like any other bill.",control:"You can fund a better offer or change the legal framework around strikes. You cannot force individual workers back into a job, and a service-level law still has to survive a Commons vote.",stakeholders:[["Striking staff","A pay offer that keeps pace with prices","✊"],["The public","Services that keep running","👥"],["Treasury","A settlement that does not spread to everyone else","💷"],["Your MPs","A law they are comfortable voting for","🏛️"]]},
+  opposition_lead:{explainer:"Opinion polls are a snapshot, not a forecast, but MPs read them as a leading indicator of their own seat. A government's response to bad polling shapes party morale well before it shapes any actual vote.",control:"You can change policy, message or tone. You cannot make the opposition less effective, and voters can simply decide they have stopped listening.",stakeholders:[["Your MPs","Reassurance about their own seat","🏛️"],["Party strategists","A message that moves the numbers","📊"],["Opposition","Keep the momentum going","🔴"],["Voters","Something worth changing their mind for","🗳️"]]},
+  inflation_spike:{explainer:"Inflation reflects global prices, domestic demand and the money supply together, and the Bank of England's independent rate-setting is only one lever among several. Government spending decisions can add to or offset the squeeze on households.",control:"You can subsidise households or intervene in specific prices. You cannot set interest rates, and price caps can suppress a symptom while leaving the underlying shortage in place.",stakeholders:[["Households","Prices that stop rising faster than wages","🛒"],["Bank of England","Room to bring inflation to target without political interference","🏦"],["Businesses","Predictable costs and demand","🏢"],["Treasury","A support package that does not itself add to inflation","💷"]]},
+  crime_wave:{explainer:"Recorded crime, policing capacity and court backlogs move on different timescales: officers can be funded quickly, but recruits take months to train and courts take longer still to clear a backlog once sentencing gets tougher.",control:"You can fund policing and change sentencing guidance. You cannot instantly reverse a rise in an underlying behaviour, and tougher sentencing adds demand to a prison system that is already stretched.",stakeholders:[["Retailers and residents","Visible policing and consequences","🏪"],["Police","Enough officers and prosecutions that stick","👮"],["Courts","A caseload they can actually clear","⚖️"],["Treasury","Value for money on prevention versus enforcement","💷"]]},
+  blackout_warning:{explainer:"Electricity supply has to match demand second by second; a system with little spare capacity is exposed whenever demand peaks and low-wind days cut generation at the same time. Building new capacity takes years; standby payments and imports are the short-term levers.",control:"You can pay generators to hold capacity in reserve, ask for voluntary demand reduction, or lean on interconnectors to import power. You cannot control the weather or guarantee another country's spare capacity is there when you need it.",stakeholders:[["Households and businesses","The lights staying on","💡"],["Grid operator","Enough margin to manage the peak safely","🔌"],["Treasury","Standby payments that do not become permanent","💷"],["Other countries","Reliable trade in electricity, not just in a crisis","🌍"]]},
+  pre_election_giveaway:{explainer:"A pre-election Budget sits at the exact point where economic policy and campaign strategy overlap. Anything unveiled now becomes part of both the fiscal inheritance the next government has to manage and the record voters judge before polling day.",control:"You can choose the fiscal package, subject to Parliament. You cannot stop the opposition or the markets reading it as electioneering, whatever you call it.",stakeholders:[["Voters","Feel better off before they decide","🗳️"],["Markets","A package that looks sustainable, not just timed","📈"],["Treasury","Room to manage whatever comes after the election","💷"],["Opposition","Frame the package as a bribe","🔴"]]},
+  manifesto_reckoning:{explainer:"A manifesto is a public promise assessed retrospectively, not a private target. How a government explains what it did and did not deliver becomes part of the electorate's judgement, independent of the numbers themselves.",control:"You can choose how to characterise the record. You cannot change what actually happened, and journalists compare the account you give against the manifesto text itself.",stakeholders:[["Voters","An honest account they can judge","🗳️"],["Party members","A record they can defend on the doorstep","🎗️"],["Media","A gap between the promise and the record to report","📰"],["Opposition","Evidence the manifesto was never serious","🔴"]]},
+  honours_row:{explainer:"Honours are formally granted by the Crown but effectively decided through a process the Prime Minister controls, including a list of the government's own nominations. Independent vetting exists but does not stop every controversial name.",control:"You decide who is nominated, and you can change the process itself. You cannot stop journalists comparing the list against the register of donations.",stakeholders:[["Nominees","Recognition they feel they earned","🎖️"],["Donors and aides","See loyalty rewarded","🤝"],["Public","A system that looks like it rewards merit","👥"],["Media","A story about cronyism","📰"]]},
+  trade_talks:{explainer:"Trade agreements trade market access for regulatory alignment: the other side's standards usually come with the deal. Negotiators can get close to an agreement long before political leaders decide whether to accept the final terms.",control:"You can accept, hold out for changes, or walk away. You cannot make the other side's negotiators offer better terms than they are willing to give.",stakeholders:[["Exporters","Better market access","🚢"],["Affected domestic industries","Protection from new competition","🏭"],["Consumers","Lower prices, more choice","🛒"],["Your MPs","A deal they can defend to constituents","🏛️"]]},
+  nurses_dispute:{explainer:"Safe staffing levels and pay are legally and industrially distinct issues, even though both show up in the same ballot. Funding one does not automatically resolve the other, which is why disputes like this can run alongside a separate pay dispute rather than replacing it.",control:"You can fund staffing changes, offer payments, or route the issue through the independent pay review process. You cannot instantly train and recruit enough nurses to fill every gap.",stakeholders:[["Nurses","Safe staffing levels on every shift","🩺"],["Patients","Consistent, safe care","🧑‍🧑‍🧒"],["NHS trusts","Deliverable staffing rules","🏥"],["Treasury","A cost that does not recur indefinitely","💷"]]},
   default:{explainer:"Government decisions sit inside a system of institutions, budgets, laws and people with competing incentives. The visible choice is usually only the start of the process.",control:"As Prime Minister you set direction and coordinate government, but Parliament, ministers, courts, public bodies, markets and voters can all constrain what happens next.",stakeholders:[["Public","Results without excessive cost","👥"],["Treasury","Affordable policy","💷"],["Your party","Stay electable and united","🏛️"],["Delivery system","A policy that can actually be implemented","⚙️"]]}
 };
 
@@ -263,6 +276,153 @@ const EXTERNAL_EVENTS=[
 const WORLD_NEWS=["WORLD • Fighting in Europe puts new pressure on defence budgets and alliances","ECONOMY • Global oil prices rise after disruption to shipping routes","EUROPE • Leaders meet to discuss defence spending and energy security","MARKETS • Investors cut global growth forecasts after weak manufacturing data","CLIMATE • Extreme weather renews pressure for adaptation spending","TECH • New AI systems accelerate debate over jobs, copyright and regulation","SECURITY • Major cyberattack hits an infrastructure provider serving several countries","TRADE • Global shipping costs jump after disruption on a key trade route"];
 
 addEvents(...EXTERNAL_EVENTS);
+
+/* Late-term content. Turns 11-19 used to run dry — the original event
+   library was front-loaded, so the second half of a term was mostly the
+   funding card and whatever the neglect drift dredged up. These ten fill
+   that stretch, several timed to compound trouble already on the board
+   rather than announcing themselves out of nowhere. */
+addEvents(
+{
+ id:"leadership_rumours", icon:"🗞️", category:"Politics", title:"LEADERSHIP RUMOURS",
+ text:"Backbenchers are muttering about a reshuffle — or worse. Nobody will say on the record whether letters are going in, which is itself the story.",
+ adviser:"Chief Whip", avatar:"🏛", adviserText:"This is not a leadership challenge yet, Prime Minister. It becomes one if you act like you're worried about it.",
+ choices:[
+  {t:"Reshuffle the Cabinet",s:"Show you've heard them",e:{power:2,approval:-1},h:"PM RESHUFFLES TO CALM THE PARTY",d:"New faces around the Cabinet table are meant to prove the message landed."},
+  {t:"Face them down",s:"Refuse to blink",e:{power:-1,approval:2},h:"PM DARES CRITICS TO MAKE THEIR MOVE",d:"Downing Street refuses to blink, betting the rumours have no teeth.",delay:{after:3,text:"No challenge ever came — but the rumours cost you some authority anyway.",e:{power:-2}}},
+  {t:"Make a concession to the rebels",s:"Buy peace with policy",e:{power:3,treasury:-3,approval:-1},h:"PM BUYS OFF THE PARTY'S REBELS",d:"A policy concession quiets the loudest critics, for now."}
+ ]
+},
+{
+ id:"winter_crisis", icon:"🥶", category:"Crisis", title:"WINTER CRISIS IN THE NHS",
+ text:"Flu, cold homes and a wave of admissions push A&E waits to record levels. Hospitals across the country declare critical incidents.",
+ adviser:"Health Secretary", avatar:"🏥", adviserText:"We can buy capacity for this winter, free up beds by cancelling other care, or spend the next month explaining why it isn't our fault.",
+ choices:[
+  {t:"Emergency funding",s:"Buy capacity now",e:{treasury:-6,britain:5,approval:2},h:"EMERGENCY WINTER FUNDING FOR THE NHS",d:"Extra beds and agency staff are funded at short notice.",delay:{after:4,text:"The extra winter capacity eases the worst of the pressure.",e:{britain:3}}},
+  {t:"Cancel elective care",s:"Free up beds, lengthen other queues",e:{britain:2,approval:-3},h:"ROUTINE OPERATIONS CANCELLED TO EASE WINTER CRISIS",d:"Non-urgent surgery is paused to free up emergency capacity.",delay:{after:5,text:"The cancelled operations become next year's waiting list.",e:{britain:-3,approval:-2}}},
+  {t:"Blame the previous government",s:"Free, unconvincing",e:{approval:-2,power:1},h:"PM BLAMES PREDECESSORS FOR WINTER CRISIS",d:"Ministers point to years of underinvestment. Voters seem unmoved."}
+ ]
+},
+{
+ id:"rent_protests", icon:"🏘️", category:"Housing", title:"RENT PROTESTS",
+ text:"Renters march in a dozen cities as rents outpace wages for a third straight year. Landlord groups warn that any cap will only shrink supply further.",
+ adviser:"Housing Secretary", avatar:"🏠", adviserText:"Cap rents and landlords start selling up. Do nothing and the marches get bigger.",
+ choices:[
+  {t:"Introduce rent controls",s:"Popular now, costs supply later",e:{housing:-4,approval:4},h:"GOVERNMENT CAPS RENT RISES",d:"Ministers impose a limit on annual rent increases.",delay:{after:5,text:"Landlords begin leaving the rental market, tightening supply further.",e:{housing:-3}}},
+  {t:"Build faster instead",s:"Slower relief, costs money",e:{treasury:-4,housing:3},h:"PM BACKS BUILDING OVER RENT CONTROLS",d:"Government bets on supply rather than price limits.",delay:{after:6,text:"New homes begin easing the rental market.",e:{housing:3}}},
+  {t:"Leave it to the market",s:"Free, and it shows",e:{approval:-3,housing:-1},h:"MINISTERS RULE OUT INTERVENTION ON RENTS",d:"Government declines to act as protests continue."}
+ ]
+},
+{
+ id:"strike_wave", icon:"✊", category:"Crisis", title:"STRIKE WAVE HITS PUBLIC SERVICES",
+ text:"Council staff, driving examiners and immigration caseworkers join a coordinated strike wave. Waiting rooms and picket lines fill up together.",
+ adviser:"Cabinet Secretary", avatar:"⚖", adviserText:"You can pay to settle, legislate to limit the disruption, or wait them out. None of it is free.",
+ vote:true, bill:"Minimum Service Levels Bill",
+ choices:[
+  {t:"Settle",s:"Pay to end it",e:{treasury:-5,britain:4,approval:1},h:"GOVERNMENT SETTLES WITH STRIKING STAFF",d:"A pay deal ends the walkouts.",delay:{after:3,text:"Backlogs from the strike wave finally clear.",e:{britain:2}}},
+  {t:"Legislate minimum service levels",s:"Force a floor, risk your own MPs",e:{approval:-2},h:"MINIMUM SERVICE LEVELS BILL INTRODUCED",d:"Ministers move to guarantee a floor of service during future strikes.",voteBoost:-4},
+  {t:"Sit it out",s:"Free, and it shows",e:{britain:-4,approval:-2},h:"MINISTERS WAIT OUT THE STRIKE WAVE",d:"No new offer, no new law. The disruption continues.",delay:{after:3,text:"Public patience with the standoff wears thin.",e:{approval:-2}}}
+ ]
+},
+{
+ id:"opposition_lead", icon:"📉", category:"Politics", title:"OPPOSITION OPENS UP A LEAD",
+ text:"A fresh poll puts the opposition ten points ahead for the first time this Parliament. Your backbenchers are reading the crosstabs, not the topline.",
+ adviser:"Party Pollster", avatar:"📊", adviserText:"A ten-point gap this far out is not fatal. It is, however, extremely motivating for anyone thinking about their own seat.",
+ choices:[
+  {t:"Pivot to popular policies",s:"Chase the polling",e:{approval:3,power:-2},h:"DOWNING STREET CHASES THE POLLS",d:"Ministers are told to find announcements the public actually wants."},
+  {t:"Hold course",s:"Steady as she goes",e:{power:2,approval:-1},h:"PM: NO CHANGE OF DIRECTION",d:"Downing Street insists the strategy is right and needs time."},
+  {t:"Attack the opposition",s:"Go on the offensive",e:{power:2,approval:-2},h:"PM LAUNCHES ATTACK ON OPPOSITION RECORD",d:"Government shifts to a more combative message."}
+ ]
+},
+{
+ id:"inflation_spike", icon:"💹", category:"Economy", title:"INFLATION SPIKES AGAIN",
+ text:"A surprise jump in the inflation figures wrongfoots the markets and reopens arguments about who should pay for it.",
+ adviser:"The Chancellor", avatar:"£", adviserText:"The Bank sets rates. We set everything else, and voters will not care about the difference.",
+ choices:[
+  {t:"Let the Bank act",s:"Respect independence",e:{power:1,approval:-1},h:"PM LEAVES INFLATION TO THE BANK",d:"Downing Street declines to intervene, citing monetary independence."},
+  {t:"Household support",s:"Cushion the blow",e:{treasury:-4,approval:3},h:"TREASURY UNVEILS COST-OF-LIVING SUPPORT",d:"New payments are announced for the households hit hardest."},
+  {t:"Impose price caps",s:"Popular, distorting",e:{economy:-3,approval:2},h:"PM IMPOSES EMERGENCY PRICE CAPS",d:"Ministers cap prices on a range of essential goods.",delay:{after:4,text:"Price caps begin distorting supply as some goods grow harder to find.",e:{economy:-2}}}
+ ]
+},
+{
+ id:"crime_wave", icon:"🚨", category:"Crisis", title:"CRIME WAVE",
+ text:"Shoplifting, phone theft and antisocial behaviour surge in town centres. Retailers say officers simply do not turn up any more.",
+ adviser:"Home Secretary", avatar:"🛂", adviserText:"More officers, tougher courts or prevention on the ground — pick one and the other two get louder.",
+ choices:[
+  {t:"Fund more police",s:"Expensive, visible",e:{treasury:-5,britain:4},h:"THOUSANDS OF NEW OFFICERS FUNDED",d:"A recruitment drive is fast-tracked for town-centre policing.",delay:{after:5,text:"New officers begin reaching the street.",e:{britain:3}}},
+  {t:"Toughen sentencing",s:"Popular, slower to bite",e:{approval:2,britain:1},h:"PM TOUGHENS SENTENCING FOR REPEAT OFFENDERS",d:"New guidance targets persistent offenders."},
+  {t:"Fund community programmes",s:"Cheaper, long-term",e:{treasury:-2,britain:2},h:"MINISTERS BACK COMMUNITY CRIME PREVENTION",d:"Local prevention schemes get fresh funding."}
+ ]
+},
+{
+ id:"blackout_warning", icon:"🔌", category:"Energy", title:"BLACKOUT WARNING",
+ text:"The grid operator warns of possible rolling blackouts this winter if demand peaks during a cold, still week with little wind generation.",
+ adviser:"Energy Secretary", avatar:"⚡", adviserText:"We can pay generators to be on standby, ask people to use less, or buy more from abroad and hope the interconnectors hold.",
+ choices:[
+  {t:"Pay for standby capacity",s:"Expensive insurance",e:{treasury:-5,britain:4},h:"GOVERNMENT PAYS FOR EMERGENCY GRID CAPACITY",d:"Standby power plants are paid to stay ready.",delay:{after:3,text:"The paid-for capacity comes online just in time for the cold snap.",e:{britain:2}}},
+  {t:"Ask for demand reduction",s:"Cheap, relies on the public",e:{britain:1,approval:-1},h:"HOUSEHOLDS ASKED TO CUT ENERGY USE",d:"A national appeal asks households to shift usage away from peak hours."},
+  {t:"Import more power",s:"Quick, exposes Britain to prices abroad",e:{treasury:-2,britain:2,economy:-1},h:"BRITAIN LEANS ON INTERCONNECTORS TO KEEP THE LIGHTS ON",d:"Extra imports are secured at a premium price."}
+ ]
+},
+{
+ id:"pre_election_giveaway", icon:"🎁", category:"Budget", title:"THE PRE-ELECTION GIVEAWAY QUESTION",
+ text:"With the election closing in, the Chancellor is under pressure to find something voters will actually notice before polling day.",
+ adviser:"The Chancellor", avatar:"£", adviserText:"Whatever we announce now, the electorate has seen this film before. It rarely changes the ending.",
+ choices:[
+  {t:"Cut taxes",s:"Popular, expensive",e:{treasury:-6,approval:4},h:"PM ANNOUNCES PRE-ELECTION TAX CUT",d:"Opposition accuses the government of buying votes with its own money."},
+  {t:"Spending splurge",s:"Popular, visible, expensive",e:{treasury:-7,approval:4,britain:2},h:"GOVERNMENT UNVEILS PRE-ELECTION SPENDING PACKAGE",d:"New money is announced across public services."},
+  {t:"Resist",s:"Responsible, thankless",e:{treasury:3,approval:-2},h:"CHANCELLOR RESISTS PRE-ELECTION GIVEAWAY",d:"The Budget banks the headroom instead of spending it."}
+ ]
+},
+{
+ id:"manifesto_reckoning", icon:"📜", category:"Politics", title:"THE MANIFESTO RECKONING",
+ text:"With the manifesto's promises about to be marked by the voters, the Party Chair wants a line prepared for every one you did not keep.",
+ adviser:"Party Chair", avatar:"🗳", adviserText:"Voters forgive a promise you tried and missed. They do not forgive being told it was never really a promise at all.",
+ choices:[
+  {t:"Be honest about what you missed",s:"Costs approval, buys trust",e:{power:3,approval:-3},h:"PM OWNS UP TO BROKEN PROMISES",d:"A frank account of the manifesto's record is published ahead of the campaign."},
+  {t:"Spin it",s:"35% chance it blows up",e:{approval:3},h:"DOWNING STREET RECASTS THE RECORD",d:"Ministers reframe missed pledges as changed circumstances.",
+   risk:{chance:0.35,e:{approval:-5},h:"SPIN OVER BROKEN PROMISES BLOWS UP",d:"A journalist picks the reframing apart line by line, and it becomes the story instead."}},
+  {t:"Change the subject",s:"Announce something else instead",e:{power:-1},h:"PM CHANGES THE SUBJECT",d:"A new announcement is timed to bury the question."}
+ ]
+}
+);
+
+/* Three more, deliberately generic and broadly windowed. An active player
+   can clear the specific late-term crises above faster than their windows
+   refill; these exist purely so the desk still has something real on it
+   when that happens, not to carry a plot of their own. */
+addEvents(
+{
+ id:"honours_row", icon:"🎖️", category:"Politics", title:"THE HONOURS LIST ROW",
+ text:"A leaked draft of the next honours list rewards donors and aides alongside genuine public service. The commentariat calls it grubby; your MPs mostly call it Tuesday.",
+ adviser:"Chief of Staff", avatar:"📱", adviserText:"Every list looks bad the week before it's published. Most of them are forgotten within a fortnight.",
+ choices:[
+  {t:"Defend the list",s:"Own the decisions",e:{power:1,approval:-2},h:"PM DEFENDS HONOURS LIST",d:"Downing Street stands by every name on the list."},
+  {t:"Trim it quietly",s:"Remove the worst names",e:{approval:1,power:-1},h:"NAMES QUIETLY DROPPED FROM HONOURS LIST",d:"Officials confirm a handful of names have been removed after press inquiries."},
+  {t:"Scrap political honours",s:"Bigger reform, bigger fight",e:{approval:2,power:-3},h:"PM MOVES TO REFORM THE HONOURS SYSTEM",d:"Government proposes ending the practice altogether, angering some of its own benches."}
+ ]
+},
+{
+ id:"trade_talks", icon:"🤝", category:"Economy", title:"TRADE TALKS REACH THE WIRE",
+ text:"Negotiators say a trade agreement is close, but only if Britain accepts standards it has resisted for months. Business wants a deal; some of your MPs want a fight.",
+ adviser:"Business Secretary", avatar:"🤖", adviserText:"No deal is free. The question is only which costs you are willing to accept, and which ones you are willing to be blamed for.",
+ choices:[
+  {t:"Accept the terms",s:"Deal now, complaints later",e:{economy:3,power:-2},h:"BRITAIN SIGNS TRADE DEAL",d:"Ministers accept the terms on offer to secure the agreement.",delay:{after:5,text:"The agreement begins showing up in trade figures.",e:{economy:2}}},
+  {t:"Hold out for more",s:"Risk the whole deal",e:{power:2,economy:-1},h:"PM HOLDS OUT ON TRADE TERMS",d:"Britain declines to sign without further changes."},
+  {t:"Walk away",s:"No deal, no compromise",e:{power:1,economy:-3},h:"TRADE TALKS COLLAPSE",d:"Negotiations end without an agreement."}
+ ]
+},
+{
+ id:"nurses_dispute", icon:"🩺", category:"Crisis", title:"NURSING STAFF DISPUTE",
+ text:"Nursing unions ballot for industrial action over staffing ratios, separately from the wider pay dispute already running. Wards warn they cannot safely absorb another walkout.",
+ adviser:"Health Secretary", avatar:"🏥", adviserText:"This is about staffing levels, not just pay. Money alone will not entirely fix it.",
+ choices:[
+  {t:"Fund safer staffing levels",s:"Address the real complaint",e:{treasury:-4,britain:4},h:"GOVERNMENT FUNDS NURSE STAFFING LEVELS",d:"Ministers commit money specifically to ward staffing ratios.",delay:{after:4,text:"Staffing ratios begin to improve on the wards worst affected.",e:{britain:2}}},
+  {t:"Offer a one-off payment",s:"Cheaper, addresses pay not staffing",e:{treasury:-2,approval:1},h:"NURSES OFFERED ONE-OFF PAYMENT",d:"A lump-sum payment is offered in lieu of a staffing commitment."},
+  {t:"Refer it to the pay review body",s:"Free, slow, safe",e:{approval:-2},h:"NURSING DISPUTE REFERRED TO PAY BODY",d:"Ministers decline to intervene directly, citing the independent process."}
+ ]
+}
+);
 
 function getBriefing(event){ return BRIEFINGS[event.id] || BRIEFINGS.default; }
 function getEvent(id){ return EVENTS.find(e => e.id === id); }
@@ -278,22 +438,38 @@ const EVENT_META = {
   rates:                {topic:'economy',   promise:'growth',  from:1,  to:16, cost:1},
   prisons:              {topic:'crime',     promise:'crime',   from:3,  to:17, cost:1},
   energy:               {topic:'energy',    promise:'climate', from:2,  to:16, cost:2},
-  minister_scandal:     {topic:'party',     promise:null,      from:3,  to:18, cost:1},
-  rail:                 {topic:'transport', promise:null,      from:4,  to:17, cost:1},
+  minister_scandal:     {topic:'party',     promise:null,      from:3,  to:19, cost:1},
+  rail:                 {topic:'transport', promise:null,      from:4,  to:19, cost:1},
   migration:            {topic:'migration', promise:null,      from:4,  to:17, cost:2},
   schools:              {topic:'services',  promise:null,      from:3,  to:17, cost:1},
-  defence:              {topic:'defence',   promise:null,      from:4,  to:18, cost:1},
+  defence:              {topic:'defence',   promise:null,      from:15, to:19, cost:1},
   local_elections:      {topic:'party',     promise:null,      from:6,  to:14, cost:1},
-  flood:                {topic:'services',  promise:null,      from:4,  to:18, cost:1},
-  ai_jobs:              {topic:'economy',   promise:'growth',  from:6,  to:18, cost:1},
-  lords:                {topic:'party',     promise:null,      from:7,  to:18, cost:2},
-  by_election:          {topic:'party',     promise:null,      from:8,  to:17, cost:1},
+  flood:                {topic:'services',  promise:null,      from:14, to:19, cost:1},
+  ai_jobs:              {topic:'economy',   promise:'growth',  from:14, to:19, cost:1},
+  lords:                {topic:'party',     promise:null,      from:9,  to:19, cost:2},
+  by_election:          {topic:'party',     promise:null,      from:15, to:19, cost:1},
   growth_budget:        {topic:'economy',   promise:'growth',  from:5,  to:17, cost:2},
-  pmqs:                 {topic:'party',     promise:null,      from:1,  to:18, cost:1},
-  data_breach:          {topic:'services',  promise:null,      from:5,  to:18, cost:1},
+  pmqs:                 {topic:'party',     promise:null,      from:1,  to:19, cost:1},
+  /* Held back deliberately: with most of the library already open by the
+     mid-term, these four are reserved for turn 18 onward so a desk that
+     has otherwise been cleared out is never actually empty. */
+  data_breach:          {topic:'services',  promise:null,      from:18, to:19, cost:1},
   final_budget:         {topic:'treasury',  promise:'tax',     from:16, to:19, cost:2},
-  eastern_europe_crisis:{topic:'defence',   promise:null,      from:5,  to:18, cost:2},
-  shipping_shock:       {topic:'economy',   promise:null,      from:6,  to:18, cost:1},
+  eastern_europe_crisis:{topic:'defence',   promise:null,      from:18, to:19, cost:2},
+  shipping_shock:       {topic:'economy',   promise:null,      from:18, to:19, cost:1},
+  leadership_rumours:   {topic:'party',     promise:null,      from:12, to:19, cost:1},
+  winter_crisis:        {topic:'health',    promise:'nhs',     from:11, to:17, cost:2},
+  rent_protests:        {topic:'housing',   promise:'housing', from:12, to:19, cost:1},
+  strike_wave:          {topic:'services',  promise:null,      from:11, to:17, cost:2},
+  opposition_lead:      {topic:'party',     promise:null,      from:13, to:19, cost:1},
+  inflation_spike:      {topic:'economy',   promise:'growth',  from:11, to:16, cost:1},
+  crime_wave:           {topic:'crime',     promise:'crime',   from:12, to:19, cost:1},
+  blackout_warning:     {topic:'energy',    promise:'climate', from:12, to:19, cost:1},
+  pre_election_giveaway:{topic:'treasury',  promise:'tax',     from:17, to:19, cost:2},
+  manifesto_reckoning:  {topic:'party',     promise:null,      from:16, to:19, cost:1},
+  honours_row:          {topic:'party',     promise:null,      from:9,  to:19, cost:1},
+  trade_talks:          {topic:'economy',   promise:'growth',  from:9,  to:19, cost:1},
+  nurses_dispute:       {topic:'health',    promise:'nhs',     from:9,  to:19, cost:1},
   election:             {topic:'final',     promise:null,      from:20, to:20, cost:0}
 };
 

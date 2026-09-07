@@ -99,8 +99,12 @@ window.UI = (function () {
   function syncChrome() {
     const s = E.state;
     const playing = ['briefing', 'decision', 'vote', 'consequences', 'britain', 'government'].indexOf(currentView) >= 0;
+    const billInFlight = !!s.bill;
     $('stats').hidden = !playing;
-    $('tabs').hidden = !playing;
+    /* While a bill is before Parliament there is nowhere else to go: no
+       tabs to wander off to, and no home button to abandon it through. */
+    $('tabs').hidden = !playing || billInFlight;
+    $('homeBtn').hidden = billInFlight;
     if (playing) {
       $('statApproval').textContent = Math.round(s.approval) + '%';
       $('statMoney').textContent = E.money(s.headroom);
@@ -294,6 +298,41 @@ window.UI = (function () {
 
   /* ------------------------------------------------------------- briefing */
 
+  /* The result of the decision or vote just resolved, shown as a strip at
+     the top of the next briefing instead of a dialog that has to be
+     dismissed before the player can see the agenda underneath it. */
+  let lastOutcome = null;
+
+  function outcomeStrip() {
+    const o = lastOutcome;
+    if (!o) return null;
+    return h('div', { class: 'outcome-strip', role: 'region', 'aria-label': 'What just happened' },
+      h('button', {
+        type: 'button', class: 'outcome-dismiss', 'aria-label': 'Dismiss',
+        onclick: function () { lastOutcome = null; renderBriefing(); }
+      }, '×'),
+      h('div', { class: 'paper' },
+        h('p', { class: 'paper-name', text: 'The Herald' }),
+        h('h3', { class: 'paper-headline', text: o.headline }),
+        h('p', { class: 'paper-deck', text: o.deck })),
+      o.voteOutcome ? h('p', { class: 'vote-note', text: o.voteOutcome.note }) : null,
+      o.changes && o.changes.length
+        ? h('ul', { class: 'changes' }, o.changes.map(function (c) {
+            return h('li', { class: c.delta > 0 ? 'good' : 'bad', text: deltaText(c) });
+          }))
+        : h('p', { class: 'muted', text: 'Nothing moved immediately.' }),
+      o.delayed ? h('p', { class: 'delayed-note' }, h('b', 'This will take time. '), o.delayed) : null);
+  }
+
+  /* Record an outcome and go straight back to the agenda instead of
+     opening a dialog that has to be closed before anything else happens. */
+  function settleOutcome(result) {
+    lastOutcome = result;
+    announce(result.headline);
+    renderBriefing();
+    show('briefing');
+  }
+
   function renderBriefing() {
     const v = $('view-briefing');
     clear(v);
@@ -351,6 +390,7 @@ window.UI = (function () {
       : 'Run the quarter →';
 
     v.appendChild(h('div', { class: 'briefing' },
+      outcomeStrip(),
       h('header', { class: 'screen-head' },
         h('p', { class: 'eyebrow', text: when(s.turn).toUpperCase() + ' · QUARTER ' + s.turn + ' OF ' + E.TURNS }),
         h('h1', { class: 'screen-title', text: 'Britain needs your attention' }),
@@ -405,12 +445,16 @@ window.UI = (function () {
           h('span', { class: 'prev-name', text: 'Takes time' }),
           h('span', { class: 'prev-range', text: 'more later' })));
       }
+      /* An unaffordable choice stays clickable — a real `disabled` attribute
+         would swallow the click, and then there is nowhere to explain why
+         nothing happened — but it looks disabled and says so. */
       choices.appendChild(h('button', {
-        type: 'button', class: 'choice',
+        type: 'button', class: 'choice' + (c.affordable === false ? ' disabled' : ''),
+        'aria-disabled': c.affordable === false ? 'true' : null,
         onclick: function () { chooseOption(card.id, c.index); }
       },
         h('b', { class: 'choice-title', text: c.text }),
-        h('span', { class: 'choice-sub', text: c.subtitle }),
+        h('span', { class: 'choice-sub', text: c.affordable === false ? 'You cannot borrow this much' : c.subtitle }),
         preview));
     });
 
@@ -465,35 +509,17 @@ window.UI = (function () {
       flash('You do not have enough actions left this quarter.');
       return;
     }
+    if (result.blocked === 'money') {
+      flash('You cannot borrow this much.');
+      return;
+    }
+    if (result.blocked === 'vote') {
+      flash('You have a bill before Parliament. Deal with that first.');
+      return;
+    }
     if (result.vote) { renderVote(null); show('vote'); return; }
     E.save();
-    showOutcome(result);
-  }
-
-  /* An immediate acknowledgement of what a decision did, before returning to the
-     agenda. The original applied the effects silently behind a toast. */
-  function showOutcome(result) {
-    const body = [
-      h('div', { class: 'paper' },
-        h('p', { class: 'paper-name', text: 'The Herald' }),
-        h('h3', { class: 'paper-headline', text: result.headline }),
-        h('p', { class: 'paper-deck', text: result.deck })),
-      result.voteOutcome ? h('p', { class: 'vote-note', text: result.voteOutcome.note }) : null,
-      result.changes && result.changes.length
-        ? h('ul', { class: 'changes' }, result.changes.map(function (c) {
-            return h('li', { class: c.delta > 0 ? 'good' : 'bad', text: deltaText(c) });
-          }))
-        : h('p', { class: 'muted', text: 'Nothing moved immediately.' }),
-      result.delayed
-        ? h('p', { class: 'delayed-note' }, h('b', 'This will take time. '), result.delayed)
-        : null,
-      h('div', { class: 'dialog-actions' },
-        h('button', { type: 'button', class: 'btn primary', onclick: function () {
-          closeDialog(); renderBriefing(); show('briefing');
-        } }, 'Back to the agenda'))
-    ];
-    announce(result.headline);
-    openDialog('Decision made', body);
+    settleOutcome(result);
   }
 
   /* ----------------------------------------------------------------- vote */
@@ -513,10 +539,12 @@ window.UI = (function () {
     const act = function (kind) {
       return function () {
         const r = E.negotiate(kind);
+        if (r && r.blocked === 'actions') { flash('No actions left this quarter.'); return; }
         E.save();
         renderVote(r && r.note);
       };
     };
+    const talkNoActions = E.state.actionsLeft <= 0;
 
     v.appendChild(h('div', { class: 'decision' },
       h('header', { class: 'screen-head' },
@@ -531,9 +559,9 @@ window.UI = (function () {
         h('button', { type: 'button', class: 'choice', disabled: !vs.canConcede, onclick: act('concede') },
           h('b', { class: 'choice-title', text: 'Make concessions' }),
           h('span', { class: 'choice-sub', text: 'Fewer rebels, but a weaker bill' })),
-        h('button', { type: 'button', class: 'choice', disabled: !vs.canTalk, onclick: act('talk') },
+        h('button', { type: 'button', class: 'choice', disabled: !vs.canTalk || talkNoActions, onclick: act('talk') },
           h('b', { class: 'choice-title', text: 'Talk to the rebels' }),
-          h('span', { class: 'choice-sub', text: 'Costs an action. Result uncertain' })),
+          h('span', { class: 'choice-sub', text: vs.canTalk && talkNoActions ? 'No actions left' : 'Costs an action. Result uncertain' })),
         h('button', { type: 'button', class: 'choice', disabled: !vs.canThreaten, onclick: act('threaten') },
           h('b', { class: 'choice-title', text: 'Threaten the whip' }),
           h('span', { class: 'choice-sub', text: 'It might work. It might backfire badly' }))),
@@ -541,10 +569,10 @@ window.UI = (function () {
         h('button', { type: 'button', class: 'btn primary wide', onclick: function () {
           if (busy) return; busy = true;
           const r = E.holdVote(); busy = false;
-          E.save(); showOutcome(r);
+          E.save(); settleOutcome(r);
         } }, 'Hold the vote'),
         h('button', { type: 'button', class: 'btn ghost wide', onclick: function () {
-          const r = E.abandonBill(); E.save(); showOutcome(r);
+          const r = E.abandonBill(); E.save(); settleOutcome(r);
         } }, 'Abandon the bill'))));
 
     show('vote');
@@ -560,6 +588,10 @@ window.UI = (function () {
     busy = true;
     const report = E.endTurn();
     busy = false;
+    /* The consequences screen is itself the acknowledgement for the
+       quarter that just ended — an outcome strip from a decision made
+       during it should not resurface once a new quarter has begun. */
+    lastOutcome = null;
     renderConsequences(report);
     show('consequences');
     announce('Quarter complete. ' + (report.headline ? report.headline.headline : ''));
@@ -575,6 +607,14 @@ window.UI = (function () {
         h('p', { class: 'paper-name', text: 'The Herald' }),
         h('h3', { class: 'paper-headline', text: report.headline.headline }),
         h('p', { class: 'paper-deck', text: report.headline.deck })));
+    }
+
+    if (report.abandonedBill) {
+      blocks.push(h('p', { class: 'strain', text: 'Your ' + report.abandonedBill + ' lapsed because Parliament rose before you brought it to a vote.' }));
+    }
+
+    if (report.interest) {
+      blocks.push(h('p', { class: 'strain', text: 'Debt interest cost £' + report.interest.cost.toFixed(1) + 'bn this quarter.' }));
     }
 
     if (report.matured.length) {
@@ -822,6 +862,17 @@ window.UI = (function () {
         icon(p.icon), h('span', { class: 'promise-label', text: p.label }), statusChip(p.status)));
     });
 
+    /* Seats are won region by region, not handed out from one national
+       dial — a save from before this existed simply has no breakdown. */
+    const regionTable = final.seatsByRegion
+      ? h('ul', { class: 'arithmetic' }, Object.keys(final.seatsByRegion).map(function (r) {
+          const row = final.seatsByRegion[r];
+          return h('li', null,
+            h('span', r + ' — ' + row.approval + '% approval'),
+            h('b', { text: row.won + ' / ' + row.seats }));
+        }))
+      : null;
+
     v.appendChild(h('div', { class: 'endgame' },
       h('header', { class: 'screen-head' },
         h('p', { class: 'eyebrow', text: 'THE GENERAL ELECTION' }),
@@ -832,6 +883,8 @@ window.UI = (function () {
         (final.won ? 'Britain has handed you the keys again.'
                    : 'The opposition now gets to discover what the job feels like.') }),
       scores,
+      regionTable ? h('h2', { class: 'block-title', text: 'Seats by region' }) : null,
+      regionTable,
       h('h2', { class: 'block-title', text: 'What you promised' }), promises,
       h('div', { class: 'advance' },
         h('button', { type: 'button', class: 'btn primary wide', onclick: startNew }, 'Run again'))));
@@ -842,18 +895,49 @@ window.UI = (function () {
   /* ----------------------------------------------------------- lifecycle */
 
   function startNew() {
+    lastOutcome = null;
+    if (E.hasSave()) {
+      confirmDialog('Start a new term?', 'Your saved term will be deleted.', 'Start new term', function () {
+        E.reset();
+        renderManifesto();
+        show('manifesto');
+      });
+      return;
+    }
     E.reset();
     renderManifesto();
     show('manifesto');
   }
 
+  /* A save that fails validation, or a rendering path that trips over one
+     that half-passed, should never leave the player looking at a broken
+     screen — it should look like starting fresh, with an explanation. */
+  function unreadableSave() {
+    E.reset();
+    flash('Your saved game could not be read.');
+    renderTitle();
+    show('title');
+  }
+
   function resume() {
-    if (!E.load()) { startNew(); return; }
-    const s = E.state;
-    if (s.turn > E.TURNS) { renderEnd(null); show('end'); return; }
-    if (s.bill) { renderVote(null); return; }
-    renderBriefing();
-    show('briefing');
+    lastOutcome = null;
+    try {
+      if (!E.load()) { unreadableSave(); return; }
+      const s = E.state;
+      if (s.turn > E.TURNS) { renderEnd(null); show('end'); return; }
+      if (s.bill) {
+        const entry = s.agenda.find(function (a) { return a.eventId === s.bill.eventId; });
+        if (entry) { renderVote(null); return; }
+        /* The bill's agenda entry is gone — a stale save from before this
+           was fixed, most likely — so there is nothing to vote on. Drop it. */
+        E.abandonBill();
+        E.save();
+      }
+      renderBriefing();
+      show('briefing');
+    } catch (e) {
+      unreadableSave();
+    }
   }
 
   /* The wordmark used to reset the game on a single click with no warning,

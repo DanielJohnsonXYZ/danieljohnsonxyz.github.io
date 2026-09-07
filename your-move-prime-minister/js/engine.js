@@ -26,6 +26,7 @@ window.Engine = (function () {
 
   const clamp = (n, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n));
   const round = Math.round;
+  const round1 = n => Math.round(n * 10) / 10;
 
   /* ---------------------------------------------------------------- state */
 
@@ -40,6 +41,9 @@ window.Engine = (function () {
       phase: 'briefing',          // briefing | decision | vote | consequences | end
       approval: 52,
       headroom: 24,               // £bn of fiscal room, not a 0-100 score
+      borrowingCost: 0,           // £bn/quarter of debt interest, last quarter
+      confidence: 70,             // market confidence, 0-100
+      lastMarketsTurn: -99,       // last turn the markets event was offered
       party: 73,
       majority: 24,
       indicators: {
@@ -75,7 +79,10 @@ window.Engine = (function () {
   /* Scheduling metadata for either kind of decision. */
   function meta(id) {
     const g = state.generated[id];
-    if (g) return { topic: g.investTopic, promise: null, cost: 1, invest: true };
+    if (g) {
+      if (g.invest) return { topic: g.investTopic, promise: null, cost: 1, invest: true };
+      return { topic: g.topic || null, promise: null, cost: g.cost || 1 };
+    }
     return EVENT_META[id] || {};
   }
 
@@ -301,7 +308,7 @@ window.Engine = (function () {
       if (key === 'approval') {
         const b = state.approval; state.approval = clamp(state.approval + v); push('Approval', b, state.approval);
       } else if (key === 'treasury') {
-        const b = state.headroom; state.headroom = clamp(state.headroom + v, -60, 120); push('Fiscal headroom', b, state.headroom);
+        const b = state.headroom; state.headroom = clamp(state.headroom + v, -150, 120); push('Fiscal headroom', b, state.headroom);
       } else if (key === 'power') {
         const b = state.party; state.party = clamp(state.party + v); push('Your party', b, state.party);
       } else if (key === 'economy') {
@@ -309,8 +316,15 @@ window.Engine = (function () {
       } else if (key === 'housing') {
         const b = state.indicators.housing; state.indicators.housing = clamp(b + v); push('Housing', b, state.indicators.housing);
       } else if (key === 'britain') {
-        const b = state.indicators.services; state.indicators.services = clamp(b + v); push('Public services', b, state.indicators.services);
-        if (topic && state.indicators[topic] !== undefined && topic !== 'services') {
+        /* "britain" used to always move Public services and, on top of that,
+           the event's own topic — so an NHS package inflated schools and
+           councils for free. It now moves one or the other: Public services
+           when the event is actually about public services (or has no
+           topic indicator of its own), otherwise just the topic itself. */
+        const hasOwnIndicator = topic && state.indicators[topic] !== undefined;
+        if (!hasOwnIndicator || topic === 'services') {
+          const b = state.indicators.services; state.indicators.services = clamp(b + v); push('Public services', b, state.indicators.services);
+        } else {
           const t = state.indicators[topic];
           state.indicators[topic] = clamp(t + v);
           push(INDICATOR_NAMES[topic] || topic, t, state.indicators[topic]);
@@ -359,19 +373,24 @@ window.Engine = (function () {
       return finale ? [{ eventId: 'election', urgent: true, cost: 0 }] : [];
     }
 
-    const candidates = EVENTS.filter(e => {
+    const unresolved = e => {
       const m = EVENT_META[e.id];
-      if (!m || m.topic === 'final') return false;
-      if (state.resolved.includes(e.id)) return false;
-      return turn >= m.from && turn <= m.to;
-    });
+      return m && m.topic !== 'final' && !state.resolved.includes(e.id);
+    };
+    let candidates = EVENTS.filter(e => unresolved(e) && turn >= EVENT_META[e.id].from && turn <= EVENT_META[e.id].to);
+    /* A quiet turn should never mean nothing to do. If an active player has
+       cleared the library faster than new windows are opening, fall back to
+       any event that has not fired yet rather than leaving the desk empty. */
+    if (!candidates.length) candidates = EVENTS.filter(unresolved);
 
     const scored = candidates.map(e => {
       const m = EVENT_META[e.id];
       let score = rand() * 12;
-      /* Things going badly ask for attention first. */
+      /* Things going badly ask for attention first — capped, so one
+         catastrophic indicator cannot make the opening turns entirely
+         predictable regardless of the random term and promise pressure. */
       const ind = state.indicators[m.topic];
-      if (ind !== undefined) score += (60 - ind) * 0.55;
+      if (ind !== undefined) score += Math.min(12, (60 - ind) * 0.55);
       /* An event that can deliver or break a promise matters more. */
       if (m.promise && state.promises.includes(m.promise)) score += 18;
       /* Something ignored keeps coming back, louder. */
@@ -381,7 +400,10 @@ window.Engine = (function () {
       return { event: e, meta: m, score: score };
     }).sort((a, b) => b.score - a.score);
 
-    const agenda = scored.slice(0, 2).map((c, i) => ({
+    /* The back half of the term has more content competing for the desk —
+       a third slot from turn 13 keeps it from running dry. */
+    const slots = turn >= 13 ? 3 : 2;
+    const agenda = scored.slice(0, slots).map((c, i) => ({
       eventId: c.event.id, urgent: i === 0, cost: c.meta.cost
     }));
 
@@ -390,7 +412,43 @@ window.Engine = (function () {
        promise reachable — the event library alone offers each topic only once. */
     const invest = makeInvestment();
     if (invest) agenda.push({ eventId: invest.id, urgent: false, cost: 1 });
+
+    /* When confidence collapses, the markets force their way onto the desk —
+       ahead of everything else, and not more than once every three turns. */
+    if (state.confidence < 45 && turn - state.lastMarketsTurn > 2) {
+      const markets = makeMarketsEvent();
+      agenda.unshift({ eventId: markets.id, urgent: true, cost: meta(markets.id).cost });
+      state.lastMarketsTurn = turn;
+    }
     return agenda;
+  }
+
+  const MARKETS_ADVISER = 'Confidence is ebbing. If borrowing costs spiral, everything else gets harder to fund.';
+
+  function makeMarketsEvent() {
+    const id = 'markets:' + state.turn;
+    const ev = {
+      id: id, icon: '📉', category: 'Crisis', title: 'THE MARKETS HAVE NOTICED',
+      text: 'Gilt yields are creeping up and the papers have noticed. The Treasury wants a response before it becomes a crisis of its own.',
+      adviser: 'The Chancellor', avatar: '£', adviserText: MARKETS_ADVISER,
+      topic: 'services', cost: 2,
+      choices: [
+        { t: 'Emergency spending cuts', s: 'Reassure the markets, fast',
+          e: { treasury: 8, britain: -5, approval: -3, power: -2 },
+          h: 'EMERGENCY CUTS TO CALM THE MARKETS', d: 'Whitehall is ordered to find billions in savings overnight.' },
+        { t: 'Raise taxes', s: 'Reassure the markets, at a political cost',
+          e: { treasury: 8, approval: -5 },
+          h: 'PM RAISES TAXES TO STEADY THE MARKETS', d: 'A tax rise is announced to reassure investors.' },
+        { t: 'Hold the line', s: '40% chance of a crisis',
+          e: { approval: 1 }, h: 'MARKETS HOLD THEIR NERVE', d: 'No emergency action is taken. Gilt yields ease back overnight.',
+          risk: { chance: 0.4,
+                  e: { economy: -8, approval: -6, power: -8, treasury: -6 },
+                  h: 'GILT MARKET CRISIS FORCES EMERGENCY BUDGET',
+                  d: 'Borrowing costs spike overnight, forcing an emergency budget within days.' } }
+      ]
+    };
+    state.generated[id] = ev;
+    return ev;
   }
 
   /* Pick the topic that most needs money: a promise the player is failing
@@ -511,12 +569,13 @@ window.Engine = (function () {
 
   function affordable(choice) {
     const cost = -(choice.e && choice.e.treasury ? choice.e.treasury : 0);
-    return cost <= 0 || state.headroom - cost > -40;
+    return cost <= 0 || state.headroom - cost >= -90;
   }
 
   /* Resolve a decision. Returns what happened so the UI can show it immediately
      rather than silently mutating numbers behind a toast. */
   function decide(eventId, choiceIndex) {
+    if (state.bill) return { blocked: 'vote' };
     const ev = lookup(eventId);
     if (!ev) return null;
     const entry = state.agenda.find(a => a.eventId === eventId);
@@ -526,6 +585,7 @@ window.Engine = (function () {
     const m = meta(ev.id);
 
     if (state.actionsLeft < (entry.cost || 0)) return { blocked: 'actions' };
+    if (!affordable(choice)) return { blocked: 'money' };
 
     /* A whipped bill goes to the Commons instead of resolving immediately. */
     if (ev.vote && !ev.final && choice.voteBoost !== undefined) {
@@ -542,10 +602,18 @@ window.Engine = (function () {
   }
 
   function commitChoice(ev, choice, meta, entry, scale) {
-    const scaled = uncertainty() * (scale === undefined ? 1 : scale);
-    const changes = applyEffects(choice.e, meta.topic, scaled);
+    /* Generic support for a choice with an uncertain downside: if the roll
+       falls inside `risk.chance`, the risk's effects and headline replace
+       the choice's own rather than the safe outcome landing. */
+    let eff = choice.e, headline = choice.h, deck = choice.d;
+    if (choice.risk && rand() < choice.risk.chance) {
+      eff = choice.risk.e; headline = choice.risk.h; deck = choice.risk.d;
+    }
 
-    if (/raise .*tax|tax rise/i.test(choice.t) && (choice.e.treasury || 0) > 0) {
+    const scaled = uncertainty() * (scale === undefined ? 1 : scale);
+    const changes = applyEffects(eff, meta.topic, scaled);
+
+    if (/raise .*tax|tax rise/i.test(choice.t) && (eff.treasury || 0) > 0) {
       state.flags.taxRaised = true;
     }
 
@@ -561,17 +629,19 @@ window.Engine = (function () {
       state.invested[ev.investTopic] = (state.invested[ev.investTopic] || 0) + 1;
     }
 
-    entry.done = true;
-    entry.choiceText = choice.t;
-    state.actionsLeft = Math.max(0, state.actionsLeft - (entry.cost || 0));
+    if (entry) {
+      entry.done = true;
+      entry.choiceText = choice.t;
+      state.actionsLeft = Math.max(0, state.actionsLeft - (entry.cost || 0));
+    }
     state.resolved.push(ev.id);
     delete state.ignored[ev.id];
-    state.record.push({ turn: state.turn, title: ev.title, choice: choice.t, headline: choice.h });
-    state.news.unshift({ turn: state.turn, headline: choice.h, deck: choice.d });
+    state.record.push({ turn: state.turn, title: ev.title, choice: choice.t, headline: headline });
+    state.news.unshift({ turn: state.turn, headline: headline, deck: deck });
     state.news = state.news.slice(0, 24);
 
     return {
-      resolved: true, headline: choice.h, deck: choice.d, changes: changes,
+      resolved: true, headline: headline, deck: deck, changes: changes,
       delayed: choice.delay ? choice.delay.text : null, eventId: ev.id
     };
   }
@@ -600,7 +670,7 @@ window.Engine = (function () {
       needed: MAJORITY_THRESHOLD, shortfall: MAJORITY_THRESHOLD - support,
       likely: support >= MAJORITY_THRESHOLD + 6 ? 'Likely to pass'
             : support >= MAJORITY_THRESHOLD ? 'Too close to call' : 'Likely to fail',
-      canConcede: b.concessions < 3, canTalk: !b.talked, canThreaten: !b.threatened,
+      canConcede: (b.concessionCount || 0) < 3, canTalk: !b.talked, canThreaten: !b.threatened,
       delayed: b.turnsDelayed
     };
   }
@@ -610,17 +680,17 @@ window.Engine = (function () {
   function negotiate(action) {
     const b = state.bill;
     if (!b) return null;
+    if (action === 'talk' && !b.talked && state.actionsLeft <= 0) return { blocked: 'actions' };
     let note = '';
-    if (action === 'concede' && b.concessions < 3) {
+    if (action === 'concede' && (b.concessionCount || 0) < 3) {
       b.concessions += round(4 + rand() * 5);
       state.party = clamp(state.party - 1);
       b.concessionCount = (b.concessionCount || 0) + 1;
-      if (b.concessionCount >= 3) b.concessions = b.concessions;
       note = 'You water down the bill. Rebels peel away, but so does some of the point of it.';
       b.weakened = (b.weakened || 0) + 1;
     } else if (action === 'talk' && !b.talked) {
       b.talked = true;
-      if (state.actionsLeft > 0) state.actionsLeft -= 1;
+      state.actionsLeft -= 1;
       const won = round(rand() * 10);
       b.concessions += won;
       note = won > 5 ? 'An evening of persuasion in your office. Most of them come round.'
@@ -689,7 +759,11 @@ window.Engine = (function () {
     const b = state.bill;
     if (!b) return null;
     const entry = state.agenda.find(a => a.eventId === b.eventId);
-    if (entry) { entry.done = true; entry.choiceText = 'Bill abandoned'; }
+    if (entry) {
+      entry.done = true;
+      entry.choiceText = 'Bill abandoned';
+      state.actionsLeft = Math.max(0, state.actionsLeft - (entry.cost || 0));
+    }
     state.approval = clamp(state.approval - 1);
     state.resolved.push(b.eventId);
     state.record.push({ turn: state.turn, title: (lookup(b.eventId) || {}).title || b.name,
@@ -706,8 +780,18 @@ window.Engine = (function () {
      silently — drift, matured consequences, the cost of ignoring things — is
      returned here so the player can be shown what their decisions did. */
   function endTurn() {
-    const before = snapshot();
     const report = { turn: state.turn, immediate: [], matured: [], neglected: [], headline: null, chains: [] };
+
+    /* Parliament rises at the end of the quarter, so any bill still awaiting
+       a vote lapses rather than surviving into a turn that no longer has an
+       agenda entry for it. */
+    if (state.bill) {
+      const billName = state.bill.name;
+      abandonBill();
+      report.abandonedBill = billName;
+    }
+
+    const before = snapshot();
 
     /* 1. Delayed consequences that have come due. */
     const due = state.pending.filter(p => p.dueTurn <= state.turn);
@@ -732,6 +816,12 @@ window.Engine = (function () {
       if (m.invest) return;
       state.ignored[a.eventId] = (state.ignored[a.eventId] || 0) + 1;
       const drift = -(2 + rand() * 2.5) * (a.urgent ? 1.5 : 1);
+      /* A government that leaves something on the desk unanswered looks
+         indecisive whether or not it happens to move an indicator — this
+         is what actually separates governing badly from not governing at
+         all, which no indicator-driven approval weight can capture on its
+         own. */
+      state.approval = clamp(state.approval + drift * 0.35);
       if (state.indicators[m.topic] !== undefined) {
         const b = state.indicators[m.topic];
         state.indicators[m.topic] = clamp(b + drift);
@@ -739,6 +829,26 @@ window.Engine = (function () {
           title: ev ? ev.title : a.eventId,
           text: 'Left unattended. ' + (INDICATOR_NAMES[m.topic] || m.topic) + ' has worsened.',
           change: { name: INDICATOR_NAMES[m.topic] || m.topic, from: round(b), to: round(state.indicators[m.topic]), delta: round(state.indicators[m.topic]) - round(b) }
+        });
+      } else if (m.topic === 'party') {
+        /* A political problem left alone does not damage a public service —
+           it damages your own side. */
+        const b = state.party;
+        state.party = clamp(state.party + drift);
+        report.neglected.push({
+          title: ev ? ev.title : a.eventId,
+          text: 'Left unattended. Your party has worsened.',
+          change: { name: 'Your party', from: round(b), to: round(state.party), delta: round(state.party) - round(b) }
+        });
+      } else if (m.topic === 'treasury') {
+        /* A fiscal problem left alone does not damage a public service either
+           — it costs money, at a bigger multiple since the sums are bigger. */
+        const b = state.headroom;
+        state.headroom = clamp(state.headroom + drift * 1.5, -150, 120);
+        report.neglected.push({
+          title: ev ? ev.title : a.eventId,
+          text: 'Left unattended. Fiscal headroom has worsened.',
+          change: { name: 'Fiscal headroom', from: round(b), to: round(state.headroom), delta: round(state.headroom) - round(b) }
         });
       }
     });
@@ -748,9 +858,9 @@ window.Engine = (function () {
           a healthy economy fund headroom which fed the economy again, so a good
           start ran away to the top of every scale. */
     const ind = state.indicators;
-    ind.health = clamp(ind.health - 0.5);
+    ind.health = clamp(ind.health - 0.35);
     ind.housing = clamp(ind.housing - 0.45);
-    ind.services = clamp(ind.services - 0.3);
+    ind.services = clamp(ind.services - 0.15);
     ind.crime = clamp(ind.crime - 0.25);
     ind.energy = clamp(ind.energy - 0.2);
     ind.transport = clamp(ind.transport - 0.3);
@@ -761,30 +871,48 @@ window.Engine = (function () {
           actually improved, and no run of luck can peg it at 100. The pull is
           comfortably larger than the noise beneath it, which is what the old
           model got backwards. */
-    const fundamentals = 22 + ind.economy * 0.18 + ind.health * 0.12 +
-                         ind.housing * 0.10 + ind.services * 0.10;
-    const noise = (rand() - 0.5) * 1.2;
+    const fundamentals = 28 + ind.economy * 0.14 + ind.health * 0.1 + ind.housing * 0.08 + ind.services * 0.08;
+    const noise = (rand() - 0.5) * 4;
     state.approval = clamp(state.approval + (fundamentals - state.approval) * 0.28 + noise);
 
     /* 5. Fiscal position and the party. Growth is what pays for public services:
           a stronger economy widens the tax base, a weak one leaves a structural
           deficit no amount of good intentions closes. This is the trade-off the
           original never had — there, spending was free and debt cost nothing. */
-    state.headroom = clamp(state.headroom + (ind.economy - 55) * 0.45 - 2.0, -60, 60);
+    state.headroom = clamp(state.headroom + (ind.economy - 55) * 0.45 - 1.0, -150, 60);
     const partyTarget = 45 + (state.approval - 45) * 0.6 + (state.headroom > 0 ? 4 : -6);
     state.party = clamp(state.party + (partyTarget - state.party) * 0.25);
     state.majority = Math.max(0, round(24 + (state.party - 73) * 0.35 + (state.approval - 52) * 0.2));
 
-    /* 5b. Debt has to cost something, or spending freely is simply the right
-           answer every time — which is what the original model taught, since a
-           negative balance cost 0.15 party unity a month and nothing else.
-           Sustained deficits raise borrowing costs, and debt interest crowds out
-           the growth that everything else depends on. */
+    /* 5b. Debt interest: borrowing is not free. A quarter spent below zero
+           costs real money the next quarter, deducted before anything else
+           happens, and reported so the player sees exactly what it cost. */
     if (state.headroom < 0) {
-      const strain = Math.min(1, -state.headroom / 45);
-      ind.economy = clamp(ind.economy - strain * 1.7);
-      state.approval = clamp(state.approval - strain * 0.9);
-      state.party = clamp(state.party - strain * 1.0);
+      state.borrowingCost = round1(Math.max(0, -state.headroom) * 0.04);
+      state.headroom = clamp(state.headroom - state.borrowingCost, -150, 60);
+      report.interest = { cost: state.borrowingCost, headroom: round(state.headroom) };
+    } else {
+      state.borrowingCost = 0;
+      /* A surplus is not dead money: cheap borrowing and a credible Treasury pull in investment. */
+      ind.economy = clamp(ind.economy + Math.min(state.headroom, 60) / 60 * 0.25);
+    }
+
+    /* 5c. Confidence tracks the fiscal and economic picture and decides
+           whether the markets force their way onto the desk. */
+    const confidenceTarget = clamp(70 + state.headroom * 1 + (ind.economy - 55) * 0.4);
+    state.confidence = clamp(state.confidence + (confidenceTarget - state.confidence) * 0.3);
+    if (state.confidence > 70) state.approval = clamp(state.approval + (state.confidence - 70) * 0.02);
+
+    /* 5d. Debt has to cost more than interest, or spending freely is simply
+           the right answer every time — which is what the original model
+           taught, since a negative balance cost 0.15 party unity a month and
+           nothing else. Sustained deficits raise borrowing costs, and debt
+           interest crowds out the growth that everything else depends on. */
+    if (state.headroom < 0) {
+      const strain = Math.min(1, -state.headroom / 55);
+      ind.economy = clamp(ind.economy - strain * 1.1);
+      state.approval = clamp(state.approval - strain * 2.6);
+      state.party = clamp(state.party - strain * 0.6);
       if (strain > 0.55) {
         report.strain = {
           text: 'Borrowing costs are rising. The Treasury warns that debt interest is crowding out everything else.',
@@ -797,8 +925,8 @@ window.Engine = (function () {
           conditions, so the map diverges instead of six dials tracking one. */
     state.prevRegions = Object.assign({}, state.regions);
     Object.keys(state.regions).forEach(r => {
-      const target = clamp(state.approval * 0.55 + localCondition(r) * 0.45);
-      state.regions[r] = clamp(state.regions[r] + (target - state.regions[r]) * 0.30 + (rand() - 0.5) * 0.8);
+      const target = clamp(state.approval * 0.6 + localCondition(r) * 0.40);
+      state.regions[r] = clamp(state.regions[r] + (target - state.regions[r]) * 0.30 + (rand() - 0.5) * 3);
     });
 
     /* 7. What the papers make of it. */
@@ -869,17 +997,26 @@ window.Engine = (function () {
 
   /* ------------------------------------------------------------- the end */
 
+  /* Seats per region (total 650), the actual distribution of Commons seats
+     rather than a single national dial. First past the post is unforgiving:
+     a region you have lost decisively returns almost none of its seats to
+     you, and one you dominate returns almost all of them. */
+  const REGION_SEATS = { Scotland: 57, North: 158, Midlands: 105, Wales: 32, London: 75, South: 223 };
+
   function finish() {
-    /* Seat projection: approval is the main driver, but it does not convert
-       directly into seats — geography and the state of the country matter. */
-    /* First past the post is unforgiving: a government polling in the low
-       fifties is on the edge, and one in the thirties is wiped out. 55% approval
-       is roughly the line between another term and the opposition's turn. */
-    const seats = clamp(round(
-      MAJORITY_THRESHOLD + (state.approval - 55) * 4.2 +
-      (state.indicators.economy - 60) * 0.35 + (state.party - 60) * 0.25 +
-      (state.indicators.health - 45) * 0.15
-    ), 150, 430);
+    /* Approval is the national headline number, but seats are won region by
+       region: each region's own approval maps to a share of its seats, from
+       a floor of 15% (you keep some seats even where you are hated) to a
+       ceiling of 85% (never a total sweep). */
+    const seatsByRegion = {};
+    let seats = 0;
+    Object.keys(REGION_SEATS).forEach(r => {
+      const regionTotal = REGION_SEATS[r];
+      const share = clamp((state.regions[r] - 22) / 60, 0, 1);
+      const won = round(regionTotal * (0.15 + 0.7 * share));
+      seatsByRegion[r] = { seats: regionTotal, won: won, approval: round(clamp(state.regions[r])) };
+      seats += won;
+    });
     const won = seats >= MAJORITY_THRESHOLD;
     const delivered = promisesDelivered();
 
@@ -891,6 +1028,7 @@ window.Engine = (function () {
 
     return {
       seats: seats, won: won, legacy: legacy,
+      seatsByRegion: seatsByRegion,
       delivered: delivered, total: totalPromises(),
       promises: promiseStatus(),
       scores: [
@@ -926,10 +1064,25 @@ window.Engine = (function () {
       return parsed && parsed.version === SAVE_VERSION && parsed.turn >= 1;
     } catch (e) { return false; }
   }
+  /* A save is only as good as its shape. A partially-corrupted blob (a
+     failed write, a hand-edited localStorage, a future version's fields)
+     used to load anyway and crash the first screen that touched a missing
+     field. This checks the fields every other function assumes exist. */
+  function validSave(p) {
+    if (!p || typeof p !== 'object' || p.version !== SAVE_VERSION) return false;
+    const isObj = x => x !== null && typeof x === 'object' && !Array.isArray(x);
+    if (!isObj(p.indicators) || !isObj(p.regions)) return false;
+    if (!Array.isArray(p.agenda) || !Array.isArray(p.promises)) return false;
+    if (!Array.isArray(p.pending) || !Array.isArray(p.resolved)) return false;
+    if (!Array.isArray(p.record)) return false;
+    if (!Number.isFinite(p.approval) || !Number.isFinite(p.headroom)) return false;
+    if (!Number.isFinite(p.party) || !Number.isFinite(p.turn)) return false;
+    return true;
+  }
   function load() {
     try {
       const parsed = JSON.parse(localStorage.getItem(SAVE_KEY));
-      if (!parsed || parsed.version !== SAVE_VERSION) return false;
+      if (!validSave(parsed)) return false;
       state = Object.assign(freshState(), parsed);
       return true;
     } catch (e) { return false; }
@@ -940,7 +1093,10 @@ window.Engine = (function () {
 
   /* --------------------------------------------------------------- setup */
 
-  function reset() { state = freshState(); clearSave(); }
+  /* Resetting in-memory state is not the same as discarding the save: a
+     player who backs out of the manifesto screen without starting a new
+     term must still find their old game intact on the title screen. */
+  function reset() { state = freshState(); }
 
   function setPromises(ids, custom) {
     state.promises = ids.slice(0, 3);
@@ -960,6 +1116,9 @@ window.Engine = (function () {
   function removeCustomPromise(i) { state.customPromises.splice(i, 1); }
 
   function beginTerm() {
+    /* A new term replaces the old save only when it actually begins —
+       not the moment the player looks at the manifesto screen. */
+    clearSave();
     state.turn = 1;
     state.actionsLeft = ACTIONS_PER_TURN;
     state.agenda = buildAgenda();
@@ -978,6 +1137,7 @@ window.Engine = (function () {
     decide: decide, endTurn: endTurn, finish: finish,
     voteState: voteState, negotiate: negotiate, holdVote: holdVote, abandonBill: abandonBill,
     britain: britain, readout: readout, money: money, govSeats: govSeats,
+    confidence: function () { return round(state.confidence); },
     regions: regions, regionDetail: regionDetail, localCondition: localCondition,
     save: save, load: load, hasSave: hasSave, clearSave: clearSave
   };
