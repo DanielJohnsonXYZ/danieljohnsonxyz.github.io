@@ -36,6 +36,12 @@
 
 * { box-sizing: border-box; }
 
+/* The one CSS rule this build was missing. Without it, an element with the
+   `hidden` attribute still renders whenever any other rule in the cascade
+   gives it a `display` — which is exactly what happened to the HUD and tabs
+   on the title, manifesto and end screens. */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   min-height: 100%;
@@ -302,6 +308,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .choice-title { display: block; font-size: 17px; font-family: Georgia, serif; }
 .choice-sub { display: block; font-size: 14px; color: var(--ink-muted); margin-bottom: 10px; }
 .choice:disabled { opacity: .5; cursor: not-allowed; }
+.choice.disabled { opacity: .6; border-color: var(--bad); }
+.choice.disabled .choice-sub { color: var(--bad); font-weight: 600; }
 @media (hover: hover) { .choice:not(:disabled):hover { border-color: var(--gold-deep); } }
 .choices.compact .choice-sub { margin-bottom: 0; }
 
@@ -356,6 +364,22 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   border-radius: var(--radius); padding: 20px 22px; margin-bottom: 22px;
   border-top: 5px solid var(--ink);
 }
+
+/* The strip that replaces the "Decision made" dialog: the same paper
+   treatment, sitting directly on the agenda it now updates, with a small
+   dismiss control rather than a modal to close before anything else. */
+.outcome-strip { position: relative; margin-bottom: 26px; }
+.outcome-strip .paper { margin-bottom: 12px; padding-right: 52px; }
+.outcome-strip .changes,
+.outcome-strip .delayed-note,
+.outcome-strip .vote-note { margin-bottom: 10px; }
+.outcome-dismiss {
+  position: absolute; top: 14px; right: 14px; z-index: 1;
+  background: none; border: 0; font-size: 22px; line-height: 1; cursor: pointer;
+  color: var(--ink-muted); padding: 4px 10px; border-radius: 8px;
+  min-height: 44px; min-width: 44px;
+}
+.outcome-dismiss:hover { color: var(--ink); }
 .paper-name {
   font-family: Georgia, serif; font-size: 12px; letter-spacing: .2em;
   text-transform: uppercase; color: var(--ink-muted); margin: 0 0 6px;
