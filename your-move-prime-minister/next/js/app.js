@@ -30,6 +30,13 @@ YM.app = (function () {
     B.render();
     if (phase === 'vote') YM.vote.open();
     else if (phase === 'verdict') YM.election.show(E.state.lastReport.final);
+    /* A reload mid-run (or while the scorecard from that run is still open)
+       lands here with E.state.phase still 'consequences' — see the comment
+       at the top of js/run.js. The desk is already rendered above; just
+       reopen its scorecard, with no animation. */
+    else if (phase === 'desk' && E.state.lastReport && E.state.phase === 'consequences') {
+      YM.run.scorecard(E.state.lastReport);
+    }
   }
 
   function boot() {
@@ -62,6 +69,30 @@ window.YM.debug = (function () {
     E.beginTerm();
     YM.app.enterScene();
   }
+
+  /* Loops YM.run.quarter() — the real public entry point, not a shortcut
+     into the engine — with motion forced to reduced so every run resolves
+     synchronously, dismissing each scorecard as it appears. Auto-answers
+     nothing: agenda items left untouched just drift or get neglected, as
+     they would for a player who does nothing but run the quarter. Stops
+     at turn `n`, at a bill (nothing here can vote), or at the final turn. */
+  function runToTurn(n) {
+    const prevMotion = document.body.dataset.motion;
+    document.body.dataset.motion = 'reduced';
+    let guard = 0;
+    while (E.state.turn < n && !E.state.bill && guard < 400) {
+      guard++;
+      YM.run.quarter();
+      const sc = document.getElementById('scorecard');
+      const btn = sc && sc.querySelector('.overlay-body > button.btn.big.block');
+      if (btn) btn.click();
+      if (E.state.lastReport && E.state.lastReport.final) break;
+    }
+    if (prevMotion === undefined) delete document.body.dataset.motion;
+    else document.body.dataset.motion = prevMotion;
+  }
+
+  function lastSeq() { return YM.run.lastSteps(); }
 
   function forceAgenda(ids) {
     E.state.agenda = (ids || []).map(function (id, i) {
@@ -100,7 +131,8 @@ window.YM.debug = (function () {
     return true;
   }
 
-  return { newGame: newGame, forceAgenda: forceAgenda, assertSynced: assertSynced };
+  return { newGame: newGame, forceAgenda: forceAgenda, assertSynced: assertSynced,
+           runToTurn: runToTurn, lastSeq: lastSeq };
 })();
 
 document.addEventListener('DOMContentLoaded', YM.app.boot);

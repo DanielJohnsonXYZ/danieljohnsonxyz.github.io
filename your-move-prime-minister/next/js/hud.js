@@ -90,19 +90,28 @@ YM.hud = (function () {
     D.replace(root, turnBlock(), statsRow(), sparkline(), promiseChips());
   }
 
-  /* Targeted update: just the one number, no rebuild. */
-  function set(key, value) {
+  /* Targeted update: just the one number, no rebuild. `from`, when given,
+     counts the visible text up from there over ~400ms (js/run.js, watching
+     the quarter happen); the data-value attribute — what assertSynced()
+     checks — is always set to the true value immediately, only the on-screen
+     digits lag behind while they animate. */
+  function set(key, value, from) {
     const el = valueEls[key];
     if (!el) return;
-    el.textContent = statDisplay(key, Math.round(value));
+    const to = Math.round(value);
     const holder = el.closest ? el.closest('.hud-stat') : null;
-    if (holder) holder.setAttribute('data-value', String(Math.round(value)));
+    if (holder) holder.setAttribute('data-value', String(to));
+    if (from !== undefined && from !== null && Math.round(from) !== to) {
+      D.tween(el, Math.round(from), to, function (v) { return statDisplay(key, v); }, 400);
+    } else {
+      el.textContent = statDisplay(key, to);
+    }
   }
 
-  function pulse(key) {
+  function pulse(key, dir) {
     const el = valueEls[key];
     const holder = el && el.closest ? el.closest('.hud-stat') : null;
-    if (holder) D.pulse(holder, 'pulse');
+    if (holder) D.pulse(holder, dir === 'up' ? 'pulse-up' : dir === 'down' ? 'pulse-down' : 'pulse');
   }
 
   return { mount: mount, render: render, set: set, pulse: pulse };
