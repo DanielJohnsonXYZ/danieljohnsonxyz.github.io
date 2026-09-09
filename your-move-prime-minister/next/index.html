@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Your Move, Prime Minister</title>
+<meta name="description" content="Run Britain for five years. One screen, every decision, and an election at the end.">
+<meta name="theme-color" content="#061326">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-phase="title" data-motion="full">
+
+<a class="visually-hidden skip-link" href="#desk">Skip to your desk</a>
+<div id="live" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+
+<!-- The title screen is the only thing that is not part of the persistent scene. -->
+<section id="title" aria-labelledby="title-heading"></section>
+
+<!-- The persistent scene: one screen for the whole term. -->
+<header id="hud" hidden aria-label="The state of the government"></header>
+<main id="app" hidden>
+  <section id="map" aria-label="Britain"></section>
+  <section id="dials" aria-label="How the country is doing"></section>
+  <aside id="desk" aria-label="Your desk"></aside>
+</main>
+<div id="ticker" hidden aria-hidden="true"></div>
+<div id="overlay" hidden></div>
+<div id="coach" hidden></div>
+
+<script src="js/content.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/dom.js"></script>
+<script src="js/format.js"></script>
+<script src="js/bus.js"></script>
+<script src="js/hud.js"></script>
+<script src="js/map.js"></script>
+<script src="js/dials.js"></script>
+<script src="js/desk.js"></script>
+<script src="js/card.js"></script>
+<script src="js/vote.js"></script>
+<script src="js/run.js"></script>
+<script src="js/onboarding.js"></script>
+<script src="js/election.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
