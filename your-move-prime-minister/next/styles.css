@@ -135,8 +135,22 @@ body:not([data-phase=title]) #title { display: none; }
   position: fixed; left: 0; right: 0; bottom: 0; height: var(--ticker-h); z-index: 30;
   background: var(--navy-deep); border-top: 1px solid var(--navy-line);
   color: var(--gold); font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase;
-  display: flex; align-items: center; padding: 0 16px; overflow: hidden; white-space: nowrap;
+  display: flex; align-items: center; gap: 12px; padding: 0 10px 0 16px; overflow: hidden; white-space: nowrap;
 }
+.ticker-week { flex: 0 0 auto; color: var(--pale-muted); font-variant-numeric: tabular-nums; }
+.ticker-line { flex: 1 1 auto; min-width: 0; text-align: center; overflow: hidden; text-overflow: ellipsis; }
+.ticker-skip { flex: 0 0 auto; text-transform: none; letter-spacing: normal; }
+
+/* ------------------------------------------------------------- callouts */
+.run-callout {
+  position: fixed; z-index: 35; max-width: 220px; pointer-events: none;
+  background: var(--cream); color: var(--ink); border: 1px solid var(--cream-line);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 8px 10px; font-size: 13px;
+  animation: overlay-in .18s var(--ease);
+}
+.run-callout-cause { margin: 0 0 2px; color: var(--ink-muted); }
+.run-callout-effect { margin: 0 0 4px; font-weight: 700; }
+.run-callout .change-chips { margin: 0; }
 
 /* -------------------------------------------------------------- overlays */
 #overlay { position: fixed; inset: 0; z-index: 40; }
@@ -172,10 +186,17 @@ body.has-overlay #app { filter: saturate(.85); }
 /* -------------------------------------------------------------- motion */
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(215,173,83,.7); } 100% { box-shadow: 0 0 0 14px rgba(215,173,83,0); } }
 .pulse { animation: pulse .7s var(--ease); }
-@keyframes pulse-up { 0% { background: rgba(127,214,160,.45); } 100% { background: transparent; } }
-@keyframes pulse-down { 0% { background: rgba(255,155,155,.45); } 100% { background: transparent; } }
+/* Pulses are a ring, never a background: a cream tile must stay readable
+   while it flashes. Map regions (SVG) get a stroke flash instead. */
+@keyframes pulse-up { 0% { box-shadow: 0 0 0 0 rgba(127,214,160,.95); } 100% { box-shadow: 0 0 0 14px rgba(127,214,160,0); } }
+@keyframes pulse-down { 0% { box-shadow: 0 0 0 0 rgba(255,120,120,.95); } 100% { box-shadow: 0 0 0 14px rgba(255,120,120,0); } }
 .pulse-up { animation: pulse-up 1s var(--ease); }
 .pulse-down { animation: pulse-down 1s var(--ease); }
+@keyframes region-pulse-up { 0% { stroke: #7fd6a0; stroke-width: 5; } 100% { stroke: var(--navy-deep); stroke-width: 1.4; } }
+@keyframes region-pulse-down { 0% { stroke: #ff7878; stroke-width: 5; } 100% { stroke: var(--navy-deep); stroke-width: 1.4; } }
+.region.pulse-up .map-shape { animation: region-pulse-up 1s var(--ease); }
+.region.pulse-down .map-shape { animation: region-pulse-down 1s var(--ease); }
+.region.pulse-up, .region.pulse-down { animation: none; }
 
 [data-motion=reduced] *, [data-motion=reduced] *::before, [data-motion=reduced] *::after {
   animation: none !important; transition: none !important;
@@ -212,7 +233,7 @@ body.has-overlay #app { filter: saturate(.85); }
 .map-wrap { display: flex; justify-content: center; margin-top: 4px; }
 .uk-map { width: 100%; max-width: 460px; height: auto; }
 .region { cursor: pointer; }
-.region .map-shape { stroke: var(--navy-deep); stroke-width: 1.4; transition: filter .15s, transform .15s var(--ease); transform-origin: center; transform-box: fill-box; }
+.region .map-shape { stroke: var(--navy-deep); stroke-width: 1.4; transition: filter .15s, transform .15s var(--ease), fill .3s var(--ease); transform-origin: center; transform-box: fill-box; }
 .region:hover .map-shape, .region:focus-visible .map-shape { filter: brightness(1.08); transform: scale(1.02); }
 .region:focus-visible { outline: none; }
 .region:focus-visible .map-shape { outline: 3px solid var(--gold); outline-offset: 1px; }

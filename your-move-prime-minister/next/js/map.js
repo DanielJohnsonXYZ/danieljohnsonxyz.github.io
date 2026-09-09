@@ -109,11 +109,22 @@ YM.map = (function () {
     return wrap;
   }
 
-  function setRegion(name, approval) {
+  /* `from`, when given, counts the shown percentage up from there over
+     ~400ms (js/run.js). The fill and data-approval move to the true value
+     immediately; only the digits animate, and the shape's own fill colour
+     eases with it via the CSS transition on .map-shape. */
+  function setRegion(name, approval, from) {
     const path = pathEls[name], valueEl = valueEls[name], group = groupEls[name];
-    if (path) path.setAttribute('fill', F.fillForValue(approval));
-    if (valueEl) valueEl.textContent = Math.round(approval) + '%';
-    if (group) group.setAttribute('data-approval', String(Math.round(approval)));
+    const to = Math.round(approval);
+    if (path) path.setAttribute('fill', F.fillForValue(to));
+    if (group) group.setAttribute('data-approval', String(to));
+    if (valueEl) {
+      if (from !== undefined && from !== null && Math.round(from) !== to) {
+        D.tween(valueEl, Math.round(from), to, function (v) { return v + '%'; }, 400);
+      } else {
+        valueEl.textContent = to + '%';
+      }
+    }
   }
 
   function pulse(name, dir) {
