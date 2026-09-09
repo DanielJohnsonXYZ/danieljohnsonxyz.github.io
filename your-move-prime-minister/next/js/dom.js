@@ -1,7 +1,8 @@
 /* DOM helpers shared by every module. Nothing here knows about the game.
 
    Rules the whole client follows:
-   - build with h()/svg() and textContent — never innerHTML;
+   - build elements with h()/svg() and set text with textContent — never with
+     raw markup strings;
    - decorative glyphs are aria-hidden;
    - anything that moves respects the reduced-motion setting. */
 
