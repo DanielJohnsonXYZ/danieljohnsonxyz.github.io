@@ -37,6 +37,7 @@ YM.app = (function () {
     else if (phase === 'desk' && E.state.lastReport && E.state.phase === 'consequences') {
       YM.run.scorecard(E.state.lastReport);
     }
+    else if (phase === 'desk') YM.onboarding.enterDesk();
   }
 
   function boot() {

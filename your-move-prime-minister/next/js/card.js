@@ -98,6 +98,22 @@ YM.card = (function () {
       eyebrow: card.category + (entry.urgent ? ' · Urgent' : ''),
       body: buildBody(card, entry)
     });
+    if (E.onboarding().stage === 'first_card') tutorialCoach(card);
+  }
+
+  /* The tutorial's one card, opened. Coach marks fire in the order a player
+     would actually notice them: the chips they are about to weigh, the
+     coins they are about to spend, then the place on the map this is about. */
+  function tutorialCoach(card) {
+    const O = YM.onboarding;
+    O.coach('chips', document.querySelector('[role=dialog] .choice-chips'),
+      'These chips are what a choice costs and gains');
+    O.coach('coins', document.querySelector('#desk .coins'),
+      'You have three coins of attention a quarter');
+    if (card.region) {
+      O.coach('pin', document.querySelector('.region[data-region="' + card.region + '"] .map-pin'),
+        'This card is about the North — watch it on the map');
+    }
   }
 
   /* Shared by card.js and vote.js: the same strip replaces whichever overlay
@@ -147,6 +163,10 @@ YM.card = (function () {
     }
     B.scene.lastOutcome = result;
     const region = currentRegion;
+    /* The tutorial's one card, answered: the player has now seen what a
+       currency costs and gains, so promises (the next stage) can mean
+       something to them. */
+    if (E.onboarding().stage === 'first_card') E.setOnboardingStage('promises');
     if (handle) handle.setBody(outcomeStrip(result, function () {
       const h = handle; handle = null;
       if (h) h.close();

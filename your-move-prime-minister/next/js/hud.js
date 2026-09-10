@@ -114,5 +114,13 @@ YM.hud = (function () {
     if (holder) D.pulse(holder, dir === 'up' ? 'pulse-up' : dir === 'down' ? 'pulse-down' : 'pulse');
   }
 
-  return { mount: mount, render: render, set: set, pulse: pulse };
+  /* Called once, right after the promises picker locks in three: the HUD
+     chips it just grew get the same gold ring every other landed change
+     gets, so a player looks up and sees where their promises went. */
+  function pulsePromises() {
+    const el = root && root.querySelector('.hud-promises');
+    if (el) D.pulse(el, 'pulse');
+  }
+
+  return { mount: mount, render: render, set: set, pulse: pulse, pulsePromises: pulsePromises };
 })();

@@ -183,6 +183,18 @@ body.has-overlay #app { filter: saturate(.85); }
 }
 .flash.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* ---------------------------------------------------------------- coach
+   #coach itself never intercepts a click (pointer-events:none) — only the
+   bubble does — so it can float near a target without ever blocking it. */
+#coach { position: fixed; inset: 0; z-index: 55; pointer-events: none; }
+.coach-bubble {
+  position: fixed; max-width: min(84vw, 260px); background: var(--navy-raised); color: var(--pale);
+  border: 1px solid var(--gold); border-radius: var(--radius-sm); padding: 10px 12px 8px;
+  box-shadow: var(--shadow); pointer-events: auto;
+}
+.coach-text { margin: 0 0 8px; font-size: 13px; }
+.coach-bubble .btn { min-height: 32px; padding: 6px 12px; font-size: 13px; }
+
 /* -------------------------------------------------------------- motion */
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(215,173,83,.7); } 100% { box-shadow: 0 0 0 14px rgba(215,173,83,0); } }
 .pulse { animation: pulse .7s var(--ease); }
@@ -282,7 +294,10 @@ body.has-overlay #app { filter: saturate(.85); }
 .desk-list { list-style: none; margin: 10px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .desk-card { background: var(--cream); color: var(--ink); border-radius: var(--radius-sm); border: 1px solid var(--cream-line); overflow: hidden; }
 .desk-card.urgent { border-left: 4px solid var(--urgent); }
+.desk-card.party-chair { border-left: 4px solid var(--gold); }
 .desk-card.done { opacity: .62; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; }
+@keyframes glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(215,173,83,.6); } 50% { box-shadow: 0 0 0 8px rgba(215,173,83,0); } }
+.desk-card.glow, .btn.glow { animation: glow 1.8s var(--ease) infinite; }
 .desk-card-btn {
   width: 100%; text-align: left; background: none; border: 0; padding: 12px; display: flex; gap: 10px;
   align-items: flex-start; font: inherit; color: inherit; border-radius: var(--radius-sm);
@@ -313,6 +328,7 @@ body.has-overlay #app { filter: saturate(.85); }
 }
 .choice:hover:not(:disabled) { border-color: var(--gold-deep); }
 .choice.unaffordable, .choice[aria-disabled=true] { opacity: .6; }
+.choice.selected { border-color: var(--gold-deep); background: rgba(215,173,83,.16); }
 .choice-title { font-weight: 700; font-family: Georgia, "Times New Roman", serif; font-size: 16px; }
 .choice-sub { color: var(--ink-muted); font-size: 13px; }
 .choice-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -364,3 +380,8 @@ body.has-overlay #app { filter: saturate(.85); }
   .dial-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
   .election-row { grid-template-columns: 1fr auto; }
 }
+
+/* picker: the region chip is a tag, not a bar */
+.choice .chip { align-self: flex-start; }
+.title-card { text-align: center; max-width: 560px; }
+.title-lede { font-family: Georgia, serif; font-size: clamp(18px, 2.4vw, 24px); color: var(--pale-muted); margin: 0 0 22px; }

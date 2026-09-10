@@ -103,11 +103,17 @@ YM.run = (function () {
       eyebrow: F.when(report.turn), locked: true, body: buildBody(report)
     });
     handle.el.id = 'scorecard';
+    if (E.onboarding().stage === 'first_run' && D.motion() !== 'reduced') {
+      YM.onboarding.coach('run_scorecard', handle.el, 'What changed, and what is still coming');
+    }
   }
 
   function next(report) {
     const h = handle; handle = null;
     if (h) h.close();
+    /* This was the tutorial's one watched run: the player has now seen the
+       country move on its own, so the tutorial is over. */
+    if (E.onboarding().stage === 'first_run') E.setOnboardingStage('done');
     if (report.final) {
       YM.election.show(report.final);
       return;
@@ -194,18 +200,33 @@ YM.run = (function () {
      motion, or any leftover steps when the sequence is finished early) —
      running every remaining step this way leaves the DOM exactly as the
      render() at the end of the sequence would. */
+
+  /* The tutorial's second coach mark during a run: the first thing the
+     player actually sees move, whichever key it happens to be — a dial, a
+     region, or just the HUD. Fires at most once (coach() itself is
+     idempotent once shown), so every call after the first is free. */
+  function maybeLanding(animate, el) {
+    if (!animate || !el) return;
+    if (D.motion() === 'reduced') return;
+    if (E.onboarding().stage !== 'first_run') return;
+    YM.onboarding.coach('run_landing', el, 'Your decision is landing');
+  }
+
   function applyChange(c, animate) {
     const key = c.key;
     if (key === 'approval' || key === 'headroom' || key === 'party' || key === 'confidence') {
       YM.hud.set(key, c.to, animate ? c.from : undefined);
       YM.hud.pulse(key, c.delta > 0 ? 'up' : c.delta < 0 ? 'down' : null);
+      maybeLanding(animate, document.querySelector('.hud-stat[data-stat="' + key + '"]'));
     } else if (key.slice(0, 7) === 'region:') {
       const name = key.slice(7);
       YM.map.setRegion(name, c.to, animate ? c.from : undefined);
       YM.map.pulse(name, c.delta > 0 ? 'up' : c.delta < 0 ? 'down' : null);
+      maybeLanding(animate, document.querySelector('.region[data-region="' + name + '"]'));
     } else if (F.DIAL_KEYS.indexOf(key) >= 0) {
       YM.dials.setDial(key, c.to);
       YM.dials.pulse(key, c.delta > 0 ? 'up' : c.delta < 0 ? 'down' : null);
+      maybeLanding(animate, document.querySelector('.dial[data-key="' + key + '"]'));
     }
     /* Other indicator keys (services, migration, defence) have no tile of
        their own — the engine still holds the change, the map/region picture
@@ -355,6 +376,9 @@ YM.run = (function () {
     YM.desk.setEnabled(false);
     buildTicker(report);
     D.announce('Running the quarter');
+    if (E.onboarding().stage === 'first_run' && D.motion() !== 'reduced') {
+      YM.onboarding.coach('run_ticker', D.$('ticker'), 'The country moves whether you act or not');
+    }
 
     /* 4-5. Build and play the week-by-week script. */
     const items = buildSteps(report);
