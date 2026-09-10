@@ -355,14 +355,50 @@ body.has-overlay #app { filter: saturate(.85); }
 
 /* ============================================================== election */
 .election-verdict { font-size: 20px; }
-.election-rows { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.election-row { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--cream-line); }
-.election-row-name { font-weight: 700; font-family: Georgia, "Times New Roman", serif; }
-.election-row-seats { font-variant-numeric: tabular-nums; }
-.election-row .muted { grid-column: 1 / -1; }
 .promise-track { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .promise-row { display: flex; align-items: center; gap: 8px; }
 .promise-row span:nth-child(2) { flex: 1; }
+
+.defining-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 6px; }
+.defining-item { border-left: 3px solid var(--gold-deep); padding-left: 12px; }
+.defining-item .eyebrow { margin-bottom: 2px; }
+.defining-item h4 { margin: 0 0 4px; font-size: 16px; }
+.defining-choice { font-weight: 700; }
+.defining-delayed { color: var(--ink-muted); }
+
+.readouts { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 0; }
+.readout-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--cream-line); }
+.readout-row b.up { color: var(--good); }
+.readout-row b.down { color: var(--bad); }
+
+.table-scroll { overflow-x: auto; margin-bottom: 12px; }
+.seats-table { width: 100%; border-collapse: collapse; font-size: 14px; white-space: nowrap; }
+.seats-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--gold-deep); padding: 4px 10px 4px 0; }
+.seats-table td { padding: 6px 10px 6px 0; border-top: 1px solid var(--cream-line); font-variant-numeric: tabular-nums; }
+
+.verdict-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+
+/* -------------------------------------------------------- election night
+   The results panel lives inside #desk (navy surface) for the whole of
+   election night, both the live count and the instant boot-to-verdict
+   path — see js/election.js. */
+#map.election-dim .uk-map { opacity: .55; transition: opacity .4s var(--ease); }
+.region.election-held .map-shape, .region.election-lost .map-shape { transition: fill .4s var(--ease); }
+
+.seats-bar { position: relative; height: 20px; background: var(--navy-line); border-radius: 999px; overflow: visible; margin: 10px 0 22px; }
+.seats-bar-fill { display: block; height: 100%; border-radius: 999px; background: var(--gold); transition: width .5s var(--ease); }
+.seats-bar.majority .seats-bar-fill { background: var(--good-on-navy); }
+.seats-bar-mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--pale); }
+.seats-bar-mark-label { position: absolute; top: 100%; margin-top: 4px; transform: translateX(-50%); font-size: 11px; color: var(--pale-muted); white-space: nowrap; }
+.seats-total { margin: 0 0 8px; font-size: 22px; font-variant-numeric: tabular-nums; }
+
+.results-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.results-row { padding: 8px 0; border-bottom: 1px solid var(--navy-line); }
+.results-row-name { font-weight: 700; font-family: Georgia, "Times New Roman", serif; }
+.results-row-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 3px; }
+.results-row-seats { font-weight: 700; font-variant-numeric: tabular-nums; }
+.results-row-reason { margin: 4px 0 0; }
+#back-to-result { margin-top: 10px; }
 
 /* ================================================================= title */
 .title-card { max-width: 480px; text-align: center; }
@@ -378,7 +414,7 @@ body.has-overlay #app { filter: saturate(.85); }
   .hud-when { min-width: 0; }
   .hud-promises { margin-left: 0; }
   .dial-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
-  .election-row { grid-template-columns: 1fr auto; }
+  .seats-bar-mark-label { font-size: 10px; }
 }
 
 /* picker: the region chip is a tag, not a bar */

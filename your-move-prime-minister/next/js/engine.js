@@ -107,7 +107,7 @@ window.Engine = (function () {
       detail: 'People on an NHS waiting list'
     }),
     housing: v => ({
-      headline: round(120 + (100 - v) * 1.6).toLocaleString() + 'k homes a year',
+      headline: round(150 + v * 1.8).toLocaleString() + 'k homes a year',
       detail: 'New homes being built annually'
     }),
     economy: v => ({

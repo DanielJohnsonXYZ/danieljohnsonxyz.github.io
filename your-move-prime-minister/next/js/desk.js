@@ -65,6 +65,10 @@ YM.desk = (function () {
 
   function render() {
     if (!root) return;
+    /* Once the term is over the desk has nothing left to offer — election
+       night owns #desk from here (js/election.js), and re-rendering the
+       normal desk UI over it would erase the results panel. */
+    if (E.state.turn > E.TURNS) return;
     const s = E.state;
     const stage = E.onboarding().stage;
     const tutorialBlocked = stage === 'first_card' || stage === 'promises';

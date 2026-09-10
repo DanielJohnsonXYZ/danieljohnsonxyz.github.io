@@ -90,7 +90,7 @@ YM.run = (function () {
     blocks.push(D.h('button', {
       class: 'btn big block', type: 'button',
       onClick: function () { next(report); }
-    }, 'Next quarter'));
+    }, report.final ? 'To the count' : 'Next quarter'));
     return blocks;
   }
 
@@ -115,7 +115,7 @@ YM.run = (function () {
        country move on its own, so the tutorial is over. */
     if (E.onboarding().stage === 'first_run') E.setOnboardingStage('done');
     if (report.final) {
-      YM.election.show(report.final);
+      YM.election.play(report.final);
       return;
     }
     /* The scorecard for this quarter is no longer showing: move off
