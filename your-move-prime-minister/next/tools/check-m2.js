@@ -87,7 +87,9 @@ async function runSuite(browser, vp) {
      'pageerrors=' + pageErrors.length);
 
   // 2. Take office -> HUD/map/dials/desk visible, 6 regions, 6 dials, synced
-  await page.getByRole('button', { name: 'Take office' }).click();
+  // (YM.debug.newGame, not the title's "Take office" — that now opens onto
+  // the M4 tutorial, which this suite of checks is not exercising.)
+  await page.evaluate(function () { YM.debug.newGame(['nhs', 'housing', 'growth'], 1); });
   await page.waitForTimeout(200);
   const hudVisible = await page.locator('#hud').isVisible();
   const appVisible = await page.locator('#app').isVisible();
@@ -187,7 +189,7 @@ async function runSuite(browser, vp) {
   page2.on('pageerror', function (e) { pageErrors2.push(String(e)); });
   await page2.goto(BASE, { waitUntil: 'load' });
   await page2.waitForTimeout(150);
-  await page2.getByRole('button', { name: 'Take office' }).click();
+  await page2.evaluate(function () { YM.debug.newGame(['nhs', 'housing', 'growth'], 2); });
   await page2.waitForTimeout(150);
 
   const result = await playFullTerm(page2);
