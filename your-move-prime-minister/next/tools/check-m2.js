@@ -56,11 +56,17 @@ async function playFullTerm(page) {
     await page.waitForSelector('#scorecard', { state: 'visible', timeout: 10000 });
     scorecards++;
     const isFinal = await page.evaluate(() => !!(Engine.state.lastReport && Engine.state.lastReport.final));
-    await page.getByRole('button', { name: 'Next quarter' }).click();
     if (isFinal) {
-      await page.waitForSelector('#election', { state: 'visible', timeout: 10000 });
+      /* M5: the final quarter's scorecard hands off to election night
+         instead of closing to the desk — its button reads "To the count". */
+      await page.getByRole('button', { name: 'To the count' }).click();
+      await page.waitForSelector('body[data-phase="election"]', { timeout: 10000 });
+      const skip = page.locator('#skip-election');
+      if (await skip.count()) await skip.click();
+      await page.waitForSelector('#verdict', { state: 'visible', timeout: 10000 });
       break;
     }
+    await page.getByRole('button', { name: 'Next quarter' }).click();
     await page.waitForTimeout(50);
   }
   return { scorecards: scorecards, voteHappened: state.voteHappened };
@@ -193,7 +199,7 @@ async function runSuite(browser, vp) {
   await page2.waitForTimeout(150);
 
   const result = await playFullTerm(page2);
-  const electionRows = await page2.locator('#election .election-row').count();
+  const electionRows = await page2.locator('#results .results-row').count();
   ok(label + ' 6. a full term: scorecard x20, a vote happened, election lists 6 regions, no pageerrors',
      result.scorecards === 20 && result.voteHappened && electionRows === 6 && pageErrors2.length === 0,
      'scorecards=' + result.scorecards + ' vote=' + result.voteHappened + ' rows=' + electionRows + ' errors=' + pageErrors2.length);

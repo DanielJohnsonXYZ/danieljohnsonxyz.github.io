@@ -18,7 +18,10 @@ YM.app = (function () {
   /* Pure: works out where a loaded game should resume, without touching
      anything. Boot and enterScene use this; nothing here has side effects. */
   function derivePhase() {
-    if (E.state.turn > E.TURNS && E.state.lastReport && E.state.lastReport.final) return 'verdict';
+    /* The term is over: skip straight to election night, however the player
+       got here (a fresh finish or a reload well after one). finish() is
+       side-effect free and safe to call more than once. */
+    if (E.state.turn > E.TURNS) return 'election';
     if (E.state.bill) return 'vote';
     return 'desk';
   }
@@ -29,7 +32,7 @@ YM.app = (function () {
     syncVisibility();
     B.render();
     if (phase === 'vote') YM.vote.open();
-    else if (phase === 'verdict') YM.election.show(E.state.lastReport.final);
+    else if (phase === 'election') YM.election.boot(E.finish());
     /* A reload mid-run (or while the scorecard from that run is still open)
        lands here with E.state.phase still 'consequences' — see the comment
        at the top of js/run.js. The desk is already rendered above; just
