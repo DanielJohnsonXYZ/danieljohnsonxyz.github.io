@@ -7,7 +7,7 @@ YM.dials = (function () {
   const E = window.Engine, D = YM.dom, B = YM.bus, F = YM.fmt;
 
   let root = null;
-  const tileEls = {}, headlineEls = {}, fillEls = {}, trendEls = {};
+  const tileEls = {}, headlineEls = {}, fillEls = {}, trendEls = {}, barEls = {};
 
   function mount() {
     root = D.$('dials');
@@ -33,6 +33,11 @@ YM.dials = (function () {
       'aria-label': 'Trend: ' + F.trendWord(delta) + (delta ? ' by ' + Math.abs(delta) : '')
     }, D.icon(F.trendArrow(delta)));
 
+    const bar = D.h('div', {
+      class: 'dial-bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100',
+      'aria-valuenow': String(r.value), 'aria-valuetext': r.headline
+    }, fill);
+
     const btn = D.h('button', {
       class: 'dial', type: 'button', 'data-key': key, 'data-value': String(r.value),
       onClick: function () { openDial(key); }
@@ -42,16 +47,16 @@ YM.dials = (function () {
         D.h('span', { class: 'dial-name', text: r.name }),
         trend),
       headline,
-      D.h('div', { class: 'dial-bar' }, fill),
+      bar,
       D.h('span', { class: 'dial-status muted small', text: r.status }));
 
-    tileEls[key] = btn; headlineEls[key] = headline; fillEls[key] = fill; trendEls[key] = trend;
+    tileEls[key] = btn; headlineEls[key] = headline; fillEls[key] = fill; trendEls[key] = trend; barEls[key] = bar;
     return btn;
   }
 
   function render() {
     if (!root) return;
-    const grid = D.h('div', { class: 'dial-grid' });
+    const grid = D.h('div', { class: 'dial-grid', role: 'group', 'aria-label': 'How the country is doing: six indicators' });
     F.DIAL_KEYS.forEach(function (key) { grid.appendChild(tile(key)); });
     D.replace(root,
       D.h('div', { class: 'panel-head' }, D.h('h2', { text: 'How the country is doing' })),
@@ -65,6 +70,7 @@ YM.dials = (function () {
     tileEl.setAttribute('data-value', String(r.value));
     if (headlineEls[key]) headlineEls[key].textContent = r.headline;
     if (fillEls[key]) { fillEls[key].style.width = r.value + '%'; fillEls[key].style.background = F.fillFor(r.status); }
+    if (barEls[key]) { barEls[key].setAttribute('aria-valuenow', String(r.value)); barEls[key].setAttribute('aria-valuetext', r.headline); }
   }
 
   function pulse(key, dir) {

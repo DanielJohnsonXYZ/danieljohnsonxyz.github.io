@@ -30,6 +30,46 @@ YM.map = (function () {
     B.subscribe(render);
   }
 
+  /* Collapsed state (the chip-row view, under 900px) persists across
+     reloads — a player who prefers the compact map should not have to
+     re-collapse it every visit. Wrapped in try/catch: a private-mode
+     browser or a blocked store must not break the map. */
+  const COLLAPSE_KEY = 'ympm.next.mapCollapsed';
+  function getCollapsed() {
+    try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch (e) { return false; }
+  }
+  function setCollapsed(v) {
+    try { localStorage.setItem(COLLAPSE_KEY, v ? '1' : '0'); } catch (e) { /* ignore */ }
+  }
+  function toggleCollapsed() { setCollapsed(!getCollapsed()); render(); }
+
+  /* Shared by the full board (regionGroup) and the collapsed chip row
+     (chipRow): the one sentence that says everything about a region a
+     sighted player reads off its shape — name, approval, trend, status. */
+  function regionLabel(r, pins) {
+    const n = Math.abs(r.delta), pt = ' point' + (n === 1 ? '' : 's');
+    const trend = r.delta > 0 ? 'up ' + n + pt : r.delta < 0 ? 'down ' + n + pt : 'unchanged';
+    const signWords = r.signs.map(function (x) { return x.label; }).join('; ');
+    return r.name + ': ' + r.approval + '% approval, ' + trend + ' since last quarter. ' +
+      'Conditions ' + r.status.toLowerCase() + '.' + (signWords ? ' ' + signWords + '.' : '') +
+      (pins.length ? ' ' + pins.length + ' item' + (pins.length === 1 ? '' : 's') + ' on the desk here.' : '');
+  }
+
+  function chipRow(pinsByR) {
+    const row = D.h('div', { class: 'map-chip-row' });
+    E.regions().forEach(function (r) {
+      row.appendChild(D.h('button', {
+        class: 'map-chip', type: 'button', 'data-region': r.name,
+        'aria-label': regionLabel(r, pinsByR[r.name] || []),
+        onClick: function () { openRegion(r.name); }
+      },
+        D.h('span', { class: 'swatch', style: { background: F.fillForValue(r.approval) }, 'aria-hidden': 'true' }),
+        D.h('span', { class: 'map-chip-name', text: r.name }),
+        D.h('span', { class: 'map-chip-value', text: r.approval + '%' })));
+    });
+    return row;
+  }
+
   function pinsByRegion() {
     const out = {};
     (E.state.agenda || []).forEach(function (entry) {
@@ -42,12 +82,7 @@ YM.map = (function () {
 
   function regionGroup(r, pins) {
     const shape = MAP_SHAPES[r.name];
-    const n = Math.abs(r.delta), pt = ' point' + (n === 1 ? '' : 's');
-    const trend = r.delta > 0 ? 'up ' + n + pt : r.delta < 0 ? 'down ' + n + pt : 'unchanged';
-    const signWords = r.signs.map(function (x) { return x.label; }).join('; ');
-    const label = r.name + ': ' + r.approval + '% approval, ' + trend + ' since last quarter. ' +
-      'Conditions ' + r.status.toLowerCase() + '.' + (signWords ? ' ' + signWords + '.' : '') +
-      (pins.length ? ' ' + pins.length + ' item' + (pins.length === 1 ? '' : 's') + ' on the desk here.' : '');
+    const label = regionLabel(r, pins);
 
     const group = D.svg('g', {
       class: 'region', role: 'button', tabindex: '0', 'data-region': r.name,
@@ -86,6 +121,7 @@ YM.map = (function () {
   function render() {
     if (!root) return;
     const pins = pinsByRegion();
+    const collapsed = getCollapsed();
     const board = D.svg('svg', {
       viewBox: '0 0 200 220', class: 'uk-map', role: 'group', 'aria-label': 'Map of Britain. Each region is a button.'
     });
@@ -93,10 +129,19 @@ YM.map = (function () {
       if (!MAP_SHAPES[r.name]) return;
       board.appendChild(regionGroup(r, pins[r.name] || []));
     });
+    const toggleBtn = D.h('button', {
+      class: 'map-toggle btn ghost', type: 'button', 'aria-expanded': String(!collapsed),
+      onClick: toggleCollapsed
+    }, 'Britain ', D.icon(collapsed ? '▸' : '▾'));
     D.replace(root,
-      D.h('div', { class: 'panel-head' }, D.h('h2', { text: 'Britain' }), D.h('p', { class: 'muted small', text: 'Tap a region for the story behind the number.' })),
+      D.h('div', { class: 'panel-head' },
+        D.h('h2', { text: 'Britain' }),
+        D.h('p', { class: 'muted small', text: 'Tap a region for the story behind the number.' }),
+        toggleBtn),
       D.h('div', { class: 'map-wrap' }, board),
+      chipRow(pins),
       legend());
+    root.classList.toggle('map-collapsed', collapsed);
   }
 
   function legend() {

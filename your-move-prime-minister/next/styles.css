@@ -19,12 +19,12 @@
   --cream:       #f8f1e2;
   --cream-line:  #e2d5b8;
   --gold:        #d7ad53;   /* 8.4:1 on navy */
-  --gold-deep:   #8a6d24;   /* 4.9:1 on cream */
+  --gold-deep:   #886720;   /* 4.7:1 on cream — M6: darkened from #8a6d24, was 4.35:1 */
   --ink:         #16202f;
   --ink-muted:   #4a5568;   /* 7.0:1 on cream */
   --pale:        #f5e8ca;
   --pale-muted:  #a8bdd6;   /* 8.1:1 on navy */
-  --good:        #2f7d4f;
+  --good:        #2d764e;   /* 4.9:1 on cream — M6: darkened from #2f7d4f, was 4.48:1 */
   --good-on-navy:#7fd6a0;
   --bad:         #a32a2a;
   --bad-on-navy: #ff9b9b;
@@ -60,6 +60,10 @@ p { margin: 0 0 .7em; }
 small, .small { font-size: 13px; }
 .eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); margin: 0 0 .4em; font-weight: 700; }
 .muted { color: var(--pale-muted); }
+/* .muted defaults to the navy-surface colour; cream tiles outside an overlay
+   (desk cards, dials) need the cream-surface one or the text nearly vanishes
+   (pale-muted on cream is 1.7:1). */
+.desk-card .muted, .dial .muted { color: var(--ink-muted); }
 
 .visually-hidden {
   position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -69,6 +73,14 @@ small, .small { font-size: 13px; }
   background: var(--gold); color: var(--ink); clip: auto; z-index: 100; border-radius: var(--radius-sm); }
 
 :focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+/* Cream surfaces need the darker ring — --gold at 1.9:1 on cream is close to
+   invisible. Everything under a cream overlay or a cream tile gets it. */
+.overlay-panel:not(.dark) :focus-visible,
+.dial:focus-visible,
+.desk-card :focus-visible,
+.map-chip:focus-visible {
+  outline-color: var(--gold-deep);
+}
 button, [role=button] { cursor: pointer; }
 button:disabled, button[aria-disabled=true] { cursor: not-allowed; opacity: .55; }
 
@@ -228,10 +240,12 @@ body.has-overlay #app { filter: saturate(.85); }
 .hud-when { min-width: 170px; }
 .hud-turn { margin: 0; font-size: 17px; color: var(--pale); }
 .hud-countdown { margin: 0; font-size: 12px; }
+.hud-turn-short, .hud-countdown-short { display: none; }
 .hud-stats { display: flex; gap: 16px; flex-wrap: wrap; }
 .hud-stat { display: flex; flex-direction: column; gap: 1px; min-width: 62px; }
-.hud-stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--pale-muted); }
-.hud-stat-value { font-weight: 700; font-size: 16px; color: var(--gold); font-variant-numeric: tabular-nums; }
+.hud-stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--pale-muted); white-space: nowrap; }
+.hud-stat-label-short { display: none; }
+.hud-stat-value { font-weight: 700; font-size: 16px; color: var(--gold); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hud-spark { flex-shrink: 0; }
 .hud-spark-line { stroke: var(--gold); stroke-width: 2; fill: none; }
 .hud-spark-dot { fill: var(--gold); }
@@ -405,15 +419,133 @@ body.has-overlay #app { filter: saturate(.85); }
 .title-lede { font-size: 17px; color: var(--pale-muted); }
 .title-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
 
-/* -------------------------------------------------------------- mobile */
+/* -------------------------------------------------------------- mobile
+   The phone is where most people will play: the desk (what the player
+   acts on) has to be reachable one-handed without hunting for it below a
+   tall HUD and a tall map, so it becomes a bottom sheet that is always at
+   least peeking above the fold. Everything else compresses to leave it
+   room. */
 @media (max-width: 899px) {
-  :root { --hud-h: 56px; }
-  #app { grid-template-columns: 1fr; grid-template-areas: "map" "dials" "desk"; padding: 10px 10px 120px; gap: 10px; }
+  :root {
+    --hud-h: 56px;
+    --desk-peek: 38vh;
+    --desk-expanded: 80vh;
+  }
+  #app { grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "dials"; padding: 10px 10px calc(var(--desk-peek) + var(--ticker-h) + 18px); gap: 10px; }
+  /* A grid track's automatic minimum size is its content's min-content size
+     unless told otherwise — without this, #dials's non-wrapping horizontal
+     strip (or #map's toggle button) would blow the single column out past
+     the viewport instead of scrolling inside itself. */
+  #app > * { min-width: 0; }
   .overlay-wrap { padding: 0; align-items: end; }
-  .overlay-panel { width: 100%; max-height: 100dvh; border-radius: var(--radius) var(--radius) 0 0; }
-  .hud-when { min-width: 0; }
-  .hud-promises { margin-left: 0; }
-  .dial-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+  .overlay-panel {
+    width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0;
+    display: flex; flex-direction: column;
+  }
+  .overlay-head { flex: 0 0 auto; }
+  .overlay-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    display: flex; flex-direction: column; }
+  /* The one obvious "next step" button in an overlay (scorecard, verdict,
+     vote, promise picker) rides along at the bottom of the scroll rather
+     than getting lost above the fold. Overlays with several equal-weight
+     choices (a card's .choices) are left to flow normally — scrolling to
+     them is the "or scroll to reach it" the desk sheet also relies on. */
+  .overlay-body > .btn.block:last-child,
+  .overlay-body > .desk-run:last-child,
+  .overlay-body > .verdict-actions:last-child,
+  .overlay-body > .vote-actions:last-child {
+    position: sticky; bottom: 0; margin-top: auto; padding-top: 10px; margin-bottom: -6px;
+  }
+  .overlay-panel:not(.dark) .overlay-body > .btn.block:last-child,
+  .overlay-panel:not(.dark) .overlay-body > .desk-run:last-child,
+  .overlay-panel:not(.dark) .overlay-body > .verdict-actions:last-child,
+  .overlay-panel:not(.dark) .overlay-body > .vote-actions:last-child { background: var(--cream); }
+  .overlay-panel.dark .overlay-body > .btn.block:last-child,
+  .overlay-panel.dark .overlay-body > .desk-run:last-child,
+  .overlay-panel.dark .overlay-body > .verdict-actions:last-child,
+  .overlay-panel.dark .overlay-body > .vote-actions:last-child { background: var(--navy-raised); }
+
+  /* ==================================================================
+     HUD: one row, --hud-h tall, nothing wraps. Two-line date/countdown,
+     four label-over-number pairs, three icon-only promise chips. The
+     sparkline has no room and adds nothing at this size. */
+  #hud { height: var(--hud-h); min-height: 0; padding: 4px 10px; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
+  .hud-when { min-width: 0; flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; gap: 0; }
+  .hud-turn { font-size: 12px; line-height: 1.15; white-space: nowrap; }
+  .hud-countdown { font-size: 9.5px; line-height: 1.15; white-space: nowrap; }
+  .hud-turn-full, .hud-countdown-full { display: none; }
+  .hud-turn-short, .hud-countdown-short { display: block; }
+  .hud-stats { flex: 1 1 auto; gap: 7px; flex-wrap: nowrap; min-width: 0; justify-content: space-between; }
+  .hud-stat { min-width: 0; gap: 0; }
+  .hud-stat-label { font-size: 9.5px; letter-spacing: .02em; }
+  .hud-stat-label-full { display: none; }
+  .hud-stat-label-short { display: block; }
+  .hud-stat-value { font-size: 15px; }
+  .hud-spark { display: none; }
+  .hud-promises { margin-left: 0; flex: 0 0 auto; gap: 4px; }
+  .promise-chip { min-width: 30px; min-height: 30px; padding: 6px; justify-content: center; }
+  .promise-chip .chip-text { display: none; white-space: nowrap; }
+  .promise-chip.expanded { padding: 6px 9px; }
+  .promise-chip.expanded .chip-text { display: inline; }
+
+  /* ==================================================================
+     Map: shorter, and collapsible to a scrollable row of chips. Both
+     states are capped so it can never eat the screen. */
+  /* A definite height, not just max-height: .map-wrap's flex:1 1 auto (and
+     .uk-map's max-height:100%) both need a real number to resolve against,
+     not an auto/indeterminate one. */
+  #map { height: var(--desk-peek); max-height: var(--desk-peek); overflow: hidden; display: flex; flex-direction: column; }
+  #map .panel-head p { display: none; }
+  #map .panel-head h2 { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .map-toggle { display: inline-flex; margin-left: auto; }
+  .map-wrap { flex: 1 1 auto; min-height: 0; overflow: hidden; align-items: center; }
+  .uk-map { max-height: 100%; width: auto; max-width: 100%; }
+  .map-legend { display: none; }
+  #map.map-collapsed .map-wrap { display: none; }
+  #map:not(.map-collapsed) .map-chip-row { display: none; }
+  .map-chip-row { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding: 6px 2px; scroll-snap-type: x proximity; }
+  .map-chip {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px;
+    padding: 8px 14px; border-radius: 999px; background: var(--cream); color: var(--ink);
+    border: 1px solid var(--cream-line); font-weight: 700; font-size: 13px; scroll-snap-align: start;
+  }
+  .map-chip-value { font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+
+  /* ==================================================================
+     Dials: one scrollable row of compact tiles instead of a grid. */
+  .dial-grid { display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory; gap: 10px; padding-bottom: 4px; margin-top: 12px; }
+  .dial { flex: 0 0 132px; scroll-snap-align: start; }
+
+  /* ==================================================================
+     Desk: a bottom sheet, always above the ticker's spot. Hidden while a
+     run is playing out — the ticker owns the bottom edge then. */
+  #desk {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; padding: 0;
+    height: var(--desk-peek); max-height: var(--desk-peek); border-radius: var(--radius) var(--radius) 0 0;
+    display: flex; flex-direction: column; box-shadow: 0 -10px 26px rgba(0,0,0,.4);
+    transition: height .22s var(--ease), max-height .22s var(--ease);
+  }
+  #desk.desk-expanded { height: var(--desk-expanded); max-height: var(--desk-expanded); }
+  body[data-phase="running"] #desk { display: none; }
+  .desk-handle {
+    flex: 0 0 auto; display: flex; justify-content: center; align-items: center;
+    width: 100%; min-height: 28px; padding: 8px 0 2px; border: 0; background: transparent;
+  }
+  .desk-handle-bar { width: 40px; height: 5px; border-radius: 999px; background: var(--navy-line); }
+  #desk .panel-head { flex: 0 0 auto; padding: 0 16px 8px; margin: 0; }
+  .panel-head-btn {
+    font-family: Georgia, "Times New Roman", serif; font-size: 18px; font-weight: 700;
+    background: none; border: 0; color: inherit; padding: 0; text-align: left;
+  }
+  .desk-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 16px; }
+  #desk > .desk-run {
+    flex: 0 0 auto; position: sticky; bottom: 0; margin: 0; background: var(--navy-raised);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+
   .seats-bar-mark-label { font-size: 10px; }
 }
 

@@ -25,11 +25,22 @@ YM.hud = (function () {
     return key === 'headroom' ? F.money(v) : (v + '%');
   }
 
+  /* Short forms for the 56px mobile row — "Year 2, Autumn" and "13 quarters
+     to the election" both run well past what two lines at that height can
+     hold without wrapping onto a third. CSS picks whichever pair is shown. */
+  function whenShort(turn) { return 'Y' + F.year(turn) + ' ' + F.season(turn).slice(0, 3); }
+  function countdownShort(turn) {
+    const left = E.TURNS - turn;
+    return left <= 0 ? 'Election now' : left + 'Q to go';
+  }
+
   function turnBlock() {
     const s = E.state;
     return D.h('div', { class: 'hud-when' },
-      D.h('p', { class: 'hud-turn serif', text: F.when(s.turn) }),
-      D.h('p', { class: 'hud-countdown muted', text: F.countdown(s.turn) }));
+      D.h('p', { class: 'hud-turn hud-turn-full serif', text: F.when(s.turn) }),
+      D.h('p', { class: 'hud-turn hud-turn-short serif', text: whenShort(s.turn) }),
+      D.h('p', { class: 'hud-countdown hud-countdown-full muted', text: F.countdown(s.turn) }),
+      D.h('p', { class: 'hud-countdown hud-countdown-short muted', text: countdownShort(s.turn) }));
   }
 
   function statsRow() {
@@ -42,7 +53,11 @@ YM.hud = (function () {
       row.appendChild(D.h('div', {
         class: 'hud-stat', 'data-stat': key, 'data-value': String(v), title: meta.help
       },
-        D.h('span', { class: 'hud-stat-label', text: meta.name }),
+        /* Two labels, one shown at a time by CSS: the full name at 900px
+           and up, the short one below it, where there is no room for
+           "Market confidence" on a 56px-tall row. */
+        D.h('span', { class: 'hud-stat-label hud-stat-label-full', text: meta.name }),
+        D.h('span', { class: 'hud-stat-label hud-stat-label-short', text: meta.short }),
         valueEl));
     });
     return row;
@@ -69,6 +84,14 @@ YM.hud = (function () {
     return svg;
   }
 
+  /* Under 900px the chips collapse to icon-only; tapping one expands it to
+     show its label too (js/hud.js keeps which ones are expanded — a plain
+     CSS/media-query toggle can't remember per-chip state across renders).
+     Above 900px the CSS never hides .chip-text, so this has no visible
+     effect on desktop. */
+  const expandedPromises = {};
+  function togglePromiseChip(id) { expandedPromises[id] = !expandedPromises[id]; render(); }
+
   function promiseChips() {
     const wrap = D.h('div', { class: 'hud-promises', 'aria-label': 'Your promises' });
     const list = E.promiseStatus();
@@ -79,8 +102,15 @@ YM.hud = (function () {
     list.slice(0, 3).forEach(function (p) {
       const cls = p.status === 'On track' || p.status === 'Delivered' ? 'up'
                 : p.status === 'Broken' ? 'down' : '';
-      wrap.appendChild(D.h('span', { class: 'chip promise-chip' + (cls ? ' ' + cls : ''), title: p.status },
-        D.icon(p.icon), ' ', p.label));
+      const expanded = !!expandedPromises[p.id];
+      wrap.appendChild(D.h('button', {
+        class: 'chip promise-chip' + (cls ? ' ' + cls : '') + (expanded ? ' expanded' : ''),
+        type: 'button', title: p.status, 'aria-expanded': String(expanded),
+        'aria-label': p.label + ' — ' + p.status,
+        onClick: function () { togglePromiseChip(p.id); }
+      },
+        D.icon(p.icon),
+        D.h('span', { class: 'chip-text', 'aria-hidden': 'true' }, ' ', p.label)));
     });
     return wrap;
   }
