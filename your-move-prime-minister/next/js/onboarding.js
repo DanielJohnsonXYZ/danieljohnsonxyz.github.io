@@ -115,6 +115,7 @@ YM.onboarding = (function () {
     D.replace(el, bubble);
     el.hidden = false;
     position(bubble, targetEl);
+    D.announce(text);
     function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); advance(); } }
     document.addEventListener('keydown', onKey, true);
     activeCoach = { key: key, onKey: onKey, target: targetEl };

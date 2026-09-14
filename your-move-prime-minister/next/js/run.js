@@ -152,7 +152,11 @@ YM.run = (function () {
     (changes || []).forEach(function (c) {
       chips.appendChild(D.h('span', { class: 'chip ' + (c.delta > 0 ? 'up' : 'down'), text: F.deltaChip(c) }));
     });
-    const el = D.h('div', { class: 'run-callout' },
+    /* Decorative: it floats over the map for a couple of seconds and is
+       gone, redundant with the scorecard that follows — not something an
+       AT user should have to stumble onto in the DOM. Its text is pushed
+       through the one shared live region instead, once, here. */
+    const el = D.h('div', { class: 'run-callout', 'aria-hidden': 'true' },
       cause ? D.h('p', { class: 'run-callout-cause small', text: cause }) : null,
       D.h('p', { class: 'run-callout-effect', text: effect }),
       (changes && changes.length) ? chips : null);
@@ -160,11 +164,13 @@ YM.run = (function () {
     const w = el.offsetWidth, h = el.offsetHeight;
     let top = rect.top - h - 10;
     if (top < 8) top = rect.bottom + 10;
+    top = Math.max(8, Math.min(window.innerHeight - h - 8, top));
     let left = rect.left + rect.width / 2 - w / 2;
     left = Math.max(8, Math.min(window.innerWidth - w - 8, left));
     el.style.left = left + 'px';
     el.style.top = top + 'px';
     calloutEl = el;
+    D.announce((cause ? cause + '. ' : '') + effect);
   }
 
   /* -------------------------------------------------------------- ticker */

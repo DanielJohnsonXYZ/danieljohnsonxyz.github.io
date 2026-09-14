@@ -83,7 +83,22 @@ YM.election = (function () {
       D.h('div', { class: 'panel-head' }, D.h('h2', { text: 'ELECTION NIGHT' })),
       barEl, totalEl, rowsList, backBtn);
 
-    D.replace(D.$('desk'), panel);
+    /* #desk is the same bottom sheet on election night (js/desk.js's own
+       peek/expand handle, reused here since it is the same element under
+       900px): starts peeked, so "expanding the sheet shows all six rows". */
+    const deskEl = D.$('desk');
+    const handle = D.h('button', {
+      class: 'desk-handle', type: 'button', 'aria-expanded': 'false', 'aria-label': 'Expand the count',
+      onClick: function () {
+        const nowExpanded = !deskEl.classList.contains('desk-expanded');
+        deskEl.classList.toggle('desk-expanded', nowExpanded);
+        handle.setAttribute('aria-expanded', String(nowExpanded));
+        handle.setAttribute('aria-label', nowExpanded ? 'Collapse the count' : 'Expand the count');
+      }
+    }, D.h('span', { class: 'desk-handle-bar', 'aria-hidden': 'true' }));
+
+    D.replace(deskEl, handle, D.h('div', { class: 'desk-scroll' }, panel));
+    deskEl.classList.remove('desk-expanded');
     panelRefs = { barEl: barEl, fillEl: fillEl, totalEl: totalEl, rows: rows, backBtn: backBtn };
   }
 
@@ -141,13 +156,18 @@ YM.election = (function () {
     const rect = anchorEl.getBoundingClientRect();
     if (!rect.width && !rect.height && !rect.top && !rect.left) return;
     const chip = D.h('span', { class: 'chip ' + (swing > 0 ? 'up' : swing < 0 ? 'down' : ''), text: F.signed(swing) + ' since Year 1' });
-    const el = D.h('div', { class: 'run-callout' },
+    /* Decorative, same reasoning as js/run.js's showCallout: the declaration
+       itself is already announced (playSeq's apply(), above) before this is
+       shown, so the floating box is aria-hidden rather than a second thing
+       for an AT user to discover. */
+    const el = D.h('div', { class: 'run-callout', 'aria-hidden': 'true' },
       D.h('p', { class: 'run-callout-effect', text: reason }),
       D.h('div', { class: 'change-chips' }, chip));
     document.body.appendChild(el);
     const w = el.offsetWidth, h = el.offsetHeight;
     let top = rect.top - h - 10;
     if (top < 8) top = rect.bottom + 10;
+    top = Math.max(8, Math.min(window.innerHeight - h - 8, top));
     let left = rect.left + rect.width / 2 - w / 2;
     left = Math.max(8, Math.min(window.innerWidth - w - 8, left));
     el.style.left = left + 'px';

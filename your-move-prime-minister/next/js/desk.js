@@ -9,6 +9,13 @@ YM.desk = (function () {
   const ACTIONS_TOTAL = 3;
   let root = null;
   let runBtn = null;
+  /* Under 900px #desk is a bottom sheet: peek (collapsed) or expanded.
+     Doesn't persist across reloads — unlike the map's collapse, spec
+     doesn't ask for it, and a fresh visit starting peeked is the safer
+     default (it is the more compact one). Has no visible effect above
+     900px, where the sheet CSS never applies. */
+  let expanded = false;
+  function toggleExpanded() { expanded = !expanded; render(); }
 
   function mount() {
     root = D.$('desk');
@@ -92,13 +99,30 @@ YM.desk = (function () {
       : stage === 'promises' ? 'Choose your promises first'
       : (undone ? undone + ' item' + (undone === 1 ? '' : 's') + ' left unanswered will get worse.' : 'Everything on your desk has an answer.');
 
+    /* The grab handle and the "Your desk" heading are the two ways to
+       toggle the mobile bottom sheet (js/desk.js only — the CSS that makes
+       this visible only applies under 900px, so on a wide screen these are
+       just two harmless buttons). */
+    const handle = D.h('button', {
+      class: 'desk-handle', type: 'button', 'aria-expanded': String(expanded),
+      'aria-label': expanded ? 'Collapse your desk' : 'Expand your desk',
+      onClick: toggleExpanded
+    }, D.h('span', { class: 'desk-handle-bar', 'aria-hidden': 'true' }));
+    const heading = D.h('button', {
+      class: 'panel-head-btn', type: 'button', 'aria-expanded': String(expanded),
+      onClick: toggleExpanded
+    }, 'Your desk');
+
     D.replace(root,
+      handle,
       D.h('div', { class: 'panel-head' },
-        D.h('h2', { text: 'Your desk' }),
+        heading,
         coinRow(ACTIONS_TOTAL - s.actionsLeft, ACTIONS_TOTAL, s.actionsLeft + ' of ' + ACTIONS_TOTAL + ' actions left')),
-      items.length ? list : D.h('p', { class: 'muted', text: 'Nothing on the desk. Run the quarter to see what comes next.' }),
+      D.h('div', { class: 'desk-scroll' },
+        items.length ? list : D.h('p', { class: 'muted', text: 'Nothing on the desk. Run the quarter to see what comes next.' })),
       D.h('div', { class: 'desk-run' }, runBtn, D.h('p', { class: 'muted small', text: hint })));
 
+    root.classList.toggle('desk-expanded', expanded);
     setEnabled(!s.bill);
 
     if (stage === 'first_card') {
