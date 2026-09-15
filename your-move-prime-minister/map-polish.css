@@ -1,5 +1,13 @@
 /* Map polish: keep Britain readable without letting it dominate the control room. */
 
+/* London is a tiny polygon with an outside label. Anchor the label at its
+   existing x-position but draw the text inward, so no viewport can clip it. */
+.region[data-region="London"] .map-name,
+.region[data-region="London"] .map-value {
+  text-anchor: end;
+  transform: none;
+}
+
 @media (min-width: 900px) {
   #map {
     padding-top: 4px;
@@ -40,15 +48,6 @@
 
   .map-value {
     font-size: 7.6px;
-  }
-
-  /* London is a tiny polygon with an outside label. Anchor the label at its
-     existing x-position but draw the text inward, so no browser can clip it
-     at the SVG's right edge. */
-  .region[data-region="London"] .map-name,
-  .region[data-region="London"] .map-value {
-    text-anchor: end;
-    transform: none;
   }
 
   .map-signs {
