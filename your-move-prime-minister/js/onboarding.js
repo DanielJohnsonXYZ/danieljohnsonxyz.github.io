@@ -1,9 +1,6 @@
-/* The title screen, coach marks, and the promises picker — everything a
-   brand new player meets before the game becomes just the game. A new
-   player learns by answering something, not by reading about it: the title
-   screen is one line and a button, and the tutorial itself is three short
-   stages carried entirely in the save (state.onboarding), so a refresh at
-   any point resumes exactly where it left off. */
+/* The title screen, first-day briefing, coach marks, and the promises picker.
+   A new player gets the premise and the few rules that matter, then learns
+   the rest by governing. */
 
 window.YM = window.YM || {};
 YM.onboarding = (function () {
@@ -12,10 +9,15 @@ YM.onboarding = (function () {
 
   /* ------------------------------------------------------------- title */
 
+  let introPending = false;
+  let introHandle = null;
+
   function startNewTerm() {
     E.reset();
     E.beginTerm({ tutorial: true });
+    introPending = true;
     YM.app.enterScene();
+    openIntro();
   }
 
   function confirmOverwrite() {
@@ -59,15 +61,55 @@ YM.onboarding = (function () {
       D.h('div', { class: 'title-actions' }, actions)));
   }
 
+  /* ------------------------------------------------------- first briefing */
+
+  function introRule(kicker, title, text) {
+    return D.h('div', { class: 'intro-rule' },
+      D.h('span', { class: 'intro-rule-kicker', text: kicker }),
+      D.h('div', null,
+        D.h('h3', { text: title }),
+        D.h('p', { text: text })));
+  }
+
+  function finishIntro() {
+    introPending = false;
+    const h = introHandle;
+    introHandle = null;
+    if (h) h.close();
+    window.setTimeout(enterDesk, 0);
+  }
+
+  function openIntro() {
+    if (introHandle) return;
+    const body = D.h('div', { class: 'intro-briefing' },
+      D.h('p', { class: 'intro-opening serif', text: 'You have five years to run Britain, hold your government together and earn another mandate.' }),
+      D.h('div', { class: 'intro-rules' },
+        introRule('01', 'Three Attention each quarter', 'Big decisions consume your limited attention. You will not be able to answer everything.'),
+        introRule('02', 'Britain keeps moving', 'Ignored problems worsen, while reforms can take several quarters before their effects appear.'),
+        introRule('03', 'Power has limits', 'Your MPs, spare money and market confidence determine what you can get away with.'),
+        introRule('04', 'The election remembers', 'Choose three promises. Voters will judge both those promises and the country you leave behind.')),
+      D.h('div', { class: 'intro-redbox' },
+        D.h('span', { class: 'intro-redbox-mark', 'aria-hidden': 'true' }),
+        D.h('div', null,
+          D.h('p', { class: 'eyebrow', text: 'YOUR FIRST RED BOX' }),
+          D.h('p', { text: 'The NHS is already in crisis. Your Health Secretary needs a decision today.' }))),
+      D.h('button', { class: 'btn big block intro-start', type: 'button', onClick: finishIntro }, 'Open your first red box'));
+
+    introHandle = B.open({
+      title: 'Welcome to Downing Street',
+      eyebrow: 'YOUR FIRST DAY AS PRIME MINISTER',
+      locked: true,
+      className: 'intro-overlay',
+      body: body
+    });
+  }
+
   /* Runs once, when the scene is first entered with the tutorial's single
-     card still waiting: opens it so a new player answers something before
-     they do anything else. `opened` is reset only by a page load, so a
-     player who closes the card sees it stay closed for the rest of this
-     visit, but a reload (a new visit) opens it again — matching what the
-     save itself remembers about the stage. */
+     card still waiting. The first-day briefing deliberately pauses this
+     auto-open until the player presses "Open your first red box". */
   let opened = false;
   function enterDesk() {
-    if (opened) return;
+    if (introPending || opened) return;
     const stage = E.onboarding().stage;
     if (stage !== 'first_card') return;
     const entry = E.state.agenda.find(function (a) { return !a.done; });
@@ -78,10 +120,6 @@ YM.onboarding = (function () {
 
   /* ------------------------------------------------------------ coach */
 
-  /* One bubble on screen at a time. A coach() call for a different key
-     while one is showing queues behind it rather than replacing it, so the
-     chips/coins/pin trio (fired together, in order) is actually seen one
-     at a time rather than only the last one flashing past. */
   let activeCoach = null;
   let queue = [];
 
@@ -121,16 +159,11 @@ YM.onboarding = (function () {
     activeCoach = { key: key, onKey: onKey, target: targetEl };
   }
 
-  /* A coach mark anchored to something that has since left the page (the
-     card's chips once the outcome strip replaces them, say) must not hang
-     in mid-air over whatever is there now. Watch the DOM and move on. */
   const detachWatcher = new MutationObserver(function () {
     if (activeCoach && activeCoach.target && !document.body.contains(activeCoach.target)) advance();
   });
   detachWatcher.observe(document.body, { childList: true, subtree: true });
 
-  /* Below the target by default; above it if there is no room underneath —
-     the same rule js/run.js uses for the callouts during a run. */
   function position(bubble, targetEl) {
     const rect = targetEl.getBoundingClientRect();
     if (!rect.width && !rect.height && !rect.top && !rect.left) {
@@ -146,11 +179,6 @@ YM.onboarding = (function () {
     bubble.style.top = top + 'px';
   }
 
-  /* Public entry point: YM.onboarding.coach(key, targetEl, text). Each key
-     shows once ever (E.markCoach/seen); a target that is not on screen this
-     turn is simply skipped. Never traps focus (no D.trap, no auto-focus)
-     and never sits over the target (#coach itself is pointer-events:none;
-     only the bubble is interactive), so it can never block a click. */
   function coach(key, targetEl, text) {
     if (!targetEl) return;
     if (E.onboarding().seen[key]) return;
