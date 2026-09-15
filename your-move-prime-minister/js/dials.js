@@ -1,5 +1,5 @@
-/* The six dials beneath the map: the human sentence for each indicator,
-   a bar, and the arrow that says whether this quarter has moved it yet. */
+/* The six dials beneath the map: compact instruments that put the number,
+   direction and human readout in that order, so the strip scans quickly. */
 
 window.YM = window.YM || {};
 YM.dials = (function () {
@@ -7,7 +7,7 @@ YM.dials = (function () {
   const E = window.Engine, D = YM.dom, B = YM.bus, F = YM.fmt;
 
   let root = null;
-  const tileEls = {}, headlineEls = {}, fillEls = {}, trendEls = {}, barEls = {};
+  const tileEls = {}, headlineEls = {}, numberEls = {}, statusEls = {}, fillEls = {}, trendEls = {}, barEls = {};
 
   function mount() {
     root = D.$('dials');
@@ -35,11 +35,31 @@ YM.dials = (function () {
     el.textContent = trendText(delta);
   }
 
+  function lineIcon(key) {
+    const paths = {
+      health: ['M9 2v14', 'M2 9h14'],
+      housing: ['M2 9l7-6 7 6', 'M4 8.5V16h10V8.5'],
+      economy: ['M2 14l4-4 3 2 6-7', 'M12 5h3v3'],
+      crime: ['M9 2l6 2v5c0 4-2.5 6.5-6 8-3.5-1.5-6-4-6-8V4z'],
+      energy: ['M10 1L4 10h5l-1 7 6-9H9z'],
+      transport: ['M3 3h12v9H3z', 'M5 12v3', 'M13 12v3', 'M5 7h8']
+    };
+    const svg = D.svg('svg', {
+      class: 'dial-icon-svg', viewBox: '0 0 18 18', width: '18', height: '18',
+      fill: 'none', stroke: 'currentColor', 'stroke-width': '1.7',
+      'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true'
+    });
+    (paths[key] || ['M3 9h12']).forEach(function (d) { svg.appendChild(D.svg('path', { d: d })); });
+    return svg;
+  }
+
   function tile(key) {
     const r = E.readout(key);
     const delta = trendFor(key);
     const fill = D.h('span', { class: 'dial-bar-fill', style: { width: r.value + '%', background: F.fillFor(r.status) } });
     const headline = D.h('p', { class: 'dial-headline', text: r.headline });
+    const number = D.h('span', { class: 'dial-number', text: String(r.value) });
+    const status = D.h('span', { class: 'dial-status muted small', text: r.status });
     const trend = D.h('span', {
       class: 'dial-trend ' + (delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'),
       'aria-label': 'Trend: ' + F.trendWord(delta) + (delta ? ' by ' + Math.abs(delta) : ''),
@@ -53,17 +73,27 @@ YM.dials = (function () {
 
     const btn = D.h('button', {
       class: 'dial', type: 'button', 'data-key': key, 'data-value': String(r.value),
+      'aria-label': r.name + ': ' + r.value + ' out of 100, ' + r.status + '. ' + r.headline + '. ' + F.trendWord(delta) + (delta ? ' by ' + Math.abs(delta) : '') + '.',
       onClick: function () { openDial(key); }
     },
       D.h('div', { class: 'dial-top' },
-        D.icon(F.DIAL_ICON[key] || '•', 'dial-icon'),
+        lineIcon(key),
         D.h('span', { class: 'dial-name', text: r.name }),
         trend),
+      D.h('div', { class: 'dial-reading' },
+        number,
+        D.h('span', { class: 'dial-out-of', text: '/100' }),
+        status),
       headline,
-      bar,
-      D.h('span', { class: 'dial-status muted small', text: r.status }));
+      bar);
 
-    tileEls[key] = btn; headlineEls[key] = headline; fillEls[key] = fill; trendEls[key] = trend; barEls[key] = bar;
+    tileEls[key] = btn;
+    headlineEls[key] = headline;
+    numberEls[key] = number;
+    statusEls[key] = status;
+    fillEls[key] = fill;
+    trendEls[key] = trend;
+    barEls[key] = bar;
     return btn;
   }
 
@@ -83,7 +113,16 @@ YM.dials = (function () {
     const previous = Number(tileEl.getAttribute('data-value'));
     const delta = Number.isFinite(previous) ? Math.round(r.value) - Math.round(previous) : 0;
     tileEl.setAttribute('data-value', String(r.value));
+    tileEl.setAttribute('aria-label', r.name + ': ' + r.value + ' out of 100, ' + r.status + '. ' + r.headline + '. ' + F.trendWord(delta) + (delta ? ' by ' + Math.abs(delta) : '') + '.');
     if (headlineEls[key]) headlineEls[key].textContent = r.headline;
+    if (numberEls[key]) {
+      if (Number.isFinite(previous) && Math.round(previous) !== Math.round(r.value)) {
+        D.tween(numberEls[key], Math.round(previous), Math.round(r.value), String, 400);
+      } else {
+        numberEls[key].textContent = String(Math.round(r.value));
+      }
+    }
+    if (statusEls[key]) statusEls[key].textContent = r.status;
     if (fillEls[key]) { fillEls[key].style.width = r.value + '%'; fillEls[key].style.background = F.fillFor(r.status); }
     if (barEls[key]) { barEls[key].setAttribute('aria-valuenow', String(r.value)); barEls[key].setAttribute('aria-valuetext', r.headline); }
     setTrend(trendEls[key], delta);
