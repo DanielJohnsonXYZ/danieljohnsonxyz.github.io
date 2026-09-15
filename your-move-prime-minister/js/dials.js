@@ -16,8 +16,8 @@ YM.dials = (function () {
 
   function trendFor(key) {
     const hist = E.history();
-    if (!hist.length) return 0;
-    const prev = hist[hist.length - 1];
+    if (hist.length < 2) return 0;
+    const prev = hist[hist.length - 2];
     const prevVal = prev.i[key];
     if (prevVal === undefined) return 0;
     return Math.round(E.state.indicators[key]) - Math.round(prevVal);
