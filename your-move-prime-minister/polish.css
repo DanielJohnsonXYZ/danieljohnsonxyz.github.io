@@ -1,0 +1,428 @@
+/* Phase 3A.1 — visual polish. Loaded after styles.css so this file only
+   changes presentation, not the underlying layout model or game balance. */
+
+:root {
+  --paper: #fbf6ea;
+  --paper-deep: #f0e4cb;
+  --navy-glow: #173556;
+  --desk-navy: #0a1b30;
+  --red-box: #8f201f;
+  --red-box-deep: #651414;
+}
+
+html, body {
+  background:
+    radial-gradient(circle at 18% 5%, rgba(40,78,120,.22), transparent 34rem),
+    linear-gradient(180deg, #061326 0%, #071a31 55%, #061326 100%);
+}
+
+/* The control room should read as three layers: country, instruments, desk. */
+#app {
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.8fr) minmax(330px, .95fr);
+  padding-top: 18px;
+}
+
+#map, #dials {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  padding: 8px 4px 10px;
+}
+
+#map .panel-head,
+#dials .panel-head {
+  padding: 0 8px;
+  margin-bottom: 4px;
+}
+
+#map .panel-head h2,
+#dials .panel-head h2 {
+  font-size: 20px;
+  letter-spacing: -.01em;
+}
+
+#desk {
+  background: linear-gradient(180deg, var(--navy-raised), var(--desk-navy));
+  border-color: rgba(215,173,83,.28);
+  box-shadow: -18px 20px 44px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.025);
+  padding: 16px;
+}
+
+#desk .panel-head {
+  align-items: center;
+  border-bottom: 1px solid rgba(168,189,214,.14);
+  padding-bottom: 11px;
+  margin-bottom: 4px;
+}
+
+.panel-head-btn {
+  letter-spacing: -.01em;
+}
+
+/* HUD: trajectories should scan almost as quickly as the numbers. */
+#hud {
+  box-shadow: 0 10px 30px rgba(0,0,0,.14);
+  border-bottom-color: rgba(215,173,83,.22);
+}
+
+.hud-stat {
+  position: relative;
+  padding-left: 12px;
+}
+.hud-stat::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: rgba(168,189,214,.18);
+}
+.hud-stat-trend {
+  margin-left: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  vertical-align: .05em;
+}
+.hud-stat-trend.up { color: var(--good-on-navy); }
+.hud-stat-trend.down { color: var(--bad-on-navy); }
+.hud-stat-trend.flat { color: var(--pale-muted); }
+
+.promise-chip {
+  min-height: 32px;
+  background: rgba(255,255,255,.025);
+  transition: transform .12s var(--ease), background .15s, border-color .15s;
+}
+.promise-chip:hover { transform: translateY(-1px); background: rgba(255,255,255,.055); }
+
+/* Britain is the main display, not another card. */
+.map-wrap {
+  margin-top: 0;
+  min-height: 280px;
+}
+.uk-map {
+  max-width: 520px;
+  filter: drop-shadow(0 18px 22px rgba(0,0,0,.16));
+}
+.region .map-shape {
+  stroke-width: 1.7;
+  filter: saturate(.92);
+}
+.region:hover .map-shape,
+.region:focus-visible .map-shape {
+  filter: brightness(1.08) saturate(1.05);
+  transform: scale(1.025);
+}
+.map-name {
+  font-size: 9.5px;
+  letter-spacing: -.01em;
+}
+.map-value {
+  font-size: 8.3px;
+  font-variant-numeric: tabular-nums;
+}
+.map-signs { font-size: 8.6px; }
+.map-pin {
+  stroke-width: 1.5;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
+}
+.map-legend {
+  justify-content: center;
+  opacity: .82;
+}
+
+/* Instrument strip: big number first, then trend, then the human reading. */
+.dial-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 8px;
+}
+.dial {
+  min-height: 132px;
+  background: linear-gradient(180deg, var(--paper), #f6eedf);
+  border: 0;
+  border-radius: 7px;
+  padding: 11px 12px 10px;
+  box-shadow: 0 5px 14px rgba(0,0,0,.18), inset 0 0 0 1px rgba(113,87,42,.15);
+  gap: 5px;
+}
+.dial:hover, .dial:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(0,0,0,.22), inset 0 0 0 1px rgba(136,103,32,.28);
+}
+.dial-top { min-height: 24px; }
+.dial-icon-svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  color: var(--gold-deep);
+}
+.dial-name {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+}
+.dial-trend {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.dial-reading {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  min-height: 35px;
+}
+.dial-number {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 31px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -.04em;
+}
+.dial-out-of {
+  color: var(--ink-muted);
+  font-size: 11px;
+  margin-right: auto;
+}
+.dial-reading .dial-status {
+  font-size: 10px;
+  font-weight: 800;
+}
+.dial-headline {
+  font-size: 14px;
+  min-height: 32px;
+  line-height: 1.18;
+}
+.dial-bar { height: 6px; }
+
+/* Desk cards should feel like papers waiting for a signature. */
+.desk-list { gap: 10px; }
+.desk-card {
+  border: 0;
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--paper), #f7efdf);
+  box-shadow: 0 5px 12px rgba(0,0,0,.19), inset 0 0 0 1px rgba(108,82,37,.12);
+  transition: transform .12s var(--ease), box-shadow .12s var(--ease);
+}
+.desk-card:not(.done):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(0,0,0,.22), inset 0 0 0 1px rgba(108,82,37,.16);
+}
+.desk-card.urgent {
+  border-left: 5px solid var(--urgent);
+  background: linear-gradient(90deg, rgba(163,42,42,.07), transparent 36%), linear-gradient(180deg, var(--paper), #f7efdf);
+}
+.desk-card.party-chair { border-left: 5px solid var(--gold); }
+.desk-card-btn { padding: 13px 12px; }
+.desk-card-title { font-size: 15px; line-height: 1.15; }
+.desk-card .eyebrow { margin-bottom: 1px; }
+.desk-attention {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--pale-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.desk-attention .coins { padding: 5px 7px; border: 1px solid rgba(215,173,83,.28); border-radius: 999px; }
+.desk-left-behind {
+  padding: 9px 10px;
+  margin: 0 0 10px;
+  border: 1px solid rgba(255,155,155,.23);
+  border-radius: 7px;
+  background: rgba(163,42,42,.08);
+}
+.desk-left-behind .eyebrow { color: var(--bad-on-navy); font-size: 10px; }
+.desk-left-behind .matured-list { gap: 5px; }
+.desk-left-behind .matured-list li { border: 0; padding: 0; font-size: 12px; }
+#run-btn {
+  box-shadow: 0 8px 18px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.25);
+  letter-spacing: .01em;
+}
+#run-btn:not(:disabled):hover { transform: translateY(-1px); }
+
+/* Decision papers: compare choices, don't scroll through three stacked cards. */
+.overlay-panel {
+  width: min(100%, 680px);
+  border-radius: 10px;
+  background:
+    linear-gradient(rgba(255,255,255,.28), rgba(255,255,255,0)),
+    var(--paper);
+}
+.overlay-panel.wide { width: min(100%, 840px); }
+.overlay-head {
+  padding: 22px 24px 10px;
+  border-bottom: 1px solid rgba(136,103,32,.14);
+}
+.overlay-title {
+  font-size: clamp(24px, 3vw, 32px);
+  letter-spacing: -.018em;
+}
+.overlay-body { padding: 16px 24px 24px; }
+.card-lede {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  line-height: 1.35;
+  max-width: 62ch;
+}
+.adviser-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 8px;
+}
+.adviser-row .adviser {
+  border: 1px solid var(--cream-line);
+  border-radius: 7px;
+  background: rgba(240,228,203,.52);
+  padding: 10px 11px;
+}
+.adviser-row .adviser.second { border: 1px solid var(--cream-line); padding-top: 10px; }
+.adviser .avatar { font-size: 18px; }
+.adviser-name { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--gold-deep); }
+.explain-toggle {
+  min-height: 36px;
+  padding: 7px 10px;
+  border-width: 1px;
+  font-size: 13px;
+  margin: 4px 0 12px;
+}
+.decision-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.choice {
+  border: 1px solid var(--cream-line);
+  border-radius: 7px;
+  padding: 13px;
+  background: rgba(255,255,255,.27);
+  transition: transform .12s var(--ease), border-color .12s, box-shadow .12s, background .12s;
+}
+.choice:hover:not(:disabled) {
+  border-color: var(--gold-deep);
+  background: rgba(255,255,255,.58);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(40,31,14,.1);
+}
+.choice-title { font-size: 17px; }
+.choice-sub { line-height: 1.35; }
+.choice-chips { margin-top: auto; padding-top: 3px; }
+.attention-chip {
+  margin-left: auto;
+  background: #16202f;
+  border-color: #16202f;
+  color: #f5e8ca;
+}
+.attention-chip .attention-dots { color: var(--gold); letter-spacing: 1px; }
+.attention-label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Scorecards should scan in the order: headline, causes, movement, promises. */
+#scorecard .paper {
+  border-left: 4px solid var(--gold-deep);
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px rgba(136,103,32,.08);
+}
+#scorecard .score-block {
+  padding: 10px 0;
+  margin: 0;
+  border-bottom: 1px solid var(--cream-line);
+}
+#scorecard .score-block:last-of-type { border-bottom: 0; }
+
+/* Title: one strong object, otherwise keep the restraint. */
+.title-card {
+  position: relative;
+  max-width: 620px;
+  padding: 26px 28px 30px;
+}
+.title-card::before {
+  content: "";
+  display: block;
+  width: 126px;
+  height: 78px;
+  margin: 0 auto 28px;
+  border-radius: 7px 7px 5px 5px;
+  background:
+    linear-gradient(90deg, transparent 47%, rgba(242,207,135,.85) 47%, rgba(242,207,135,.85) 53%, transparent 53%),
+    linear-gradient(180deg, #a52a27, var(--red-box));
+  border: 1px solid #c4544d;
+  box-shadow: 0 18px 35px rgba(0,0,0,.36), inset 0 0 0 3px rgba(70,7,7,.12);
+  transform: rotate(-2.5deg);
+}
+.title-card h1 { text-shadow: 0 2px 18px rgba(0,0,0,.28); }
+.title-lede { max-width: 26ch; margin-left: auto; margin-right: auto; }
+.title-actions { max-width: 330px; margin-left: auto; margin-right: auto; }
+
+@media (max-width: 899px) {
+  :root {
+    --desk-peek: 30vh;
+    --desk-expanded: 80vh;
+  }
+
+  #app {
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  #hud {
+    min-height: 62px;
+    height: 62px;
+    padding: 5px 9px;
+    gap: 7px;
+  }
+  .hud-turn { font-size: 13px; }
+  .hud-countdown { font-size: 11px; }
+  .hud-stat-label { font-size: 10.5px; }
+  .hud-stat-value { font-size: 16px; }
+  .hud-stat { padding-left: 7px; }
+  .hud-stat[data-stat="confidence"] { display: none; }
+  .hud-promises { gap: 3px; }
+  .promise-chip { min-width: 31px; min-height: 31px; }
+
+  #map {
+    height: 34vh;
+    max-height: 34vh;
+    padding: 5px 2px 6px;
+  }
+  .map-wrap { min-height: 0; }
+  .map-name { font-size: 9px; }
+  .map-value { font-size: 8px; }
+  .map-chip { padding: 8px 11px; }
+  .map-chip-value { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  #dials { padding: 2px 0 8px; }
+  #dials .panel-head { padding: 0 8px; }
+  .dial-grid { gap: 8px; padding: 0 8px 5px; }
+  .dial { flex: 0 0 148px; min-height: 126px; padding: 10px 11px; }
+  .dial-number { font-size: 28px; }
+  .dial-headline { font-size: 13px; min-height: 31px; }
+
+  #desk {
+    background: linear-gradient(180deg, #102844, #091a2d);
+    box-shadow: 0 -12px 30px rgba(0,0,0,.46);
+  }
+  #desk .panel-head { padding-bottom: 7px; }
+  .desk-card-btn { padding: 11px; }
+  .desk-left-behind { display: none; }
+  #desk > .desk-run { padding-top: 8px; }
+
+  .overlay-panel { width: 100%; }
+  .overlay-head { padding: 18px 18px 8px; }
+  .overlay-title { font-size: 25px; }
+  .overlay-body { padding: 12px 18px 18px; }
+  .adviser-row { grid-template-columns: 1fr; }
+  .decision-choices { display: flex; flex-direction: column; }
+  .choice { padding: 12px; }
+
+  .title-card { padding: 18px 12px 26px; }
+  .title-card::before { width: 104px; height: 64px; margin-bottom: 22px; }
+}
+
+@media (min-width: 1200px) {
+  #app { grid-template-columns: minmax(0, 1.9fr) minmax(350px, .85fr); }
+  .map-wrap { min-height: 320px; }
+}
