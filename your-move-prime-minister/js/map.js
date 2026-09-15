@@ -1,0 +1,206 @@
+/* Britain, as a board rather than a chart: six places you can point at, each
+   filled by how it is actually doing, each carrying the pins for whatever is
+   on the desk about it. Tapping a region opens the story behind its number. */
+
+window.YM = window.YM || {};
+YM.map = (function () {
+  'use strict';
+  const E = window.Engine, D = YM.dom, B = YM.bus, F = YM.fmt;
+
+  /* Taken verbatim from ../js/ui.js's MAP_SHAPES: paths, label centres and
+     London's leader line. The viewBox here is 0 0 200 220 per spec; the
+     shape coordinates are unchanged. */
+  const MAP_SHAPES = {
+    Scotland: { d: 'M78,8 L118,4 L132,30 L124,58 L104,70 L80,66 L62,44 L66,20 Z', cx: 96, cy: 36 },
+    North:    { d: 'M62,44 L80,66 L104,70 L124,58 L136,76 L132,104 L104,116 L72,106 L54,80 Z', cx: 95, cy: 86 },
+    Wales:    { d: 'M54,80 L72,106 L74,124 L62,146 L40,144 L30,118 L38,92 Z', cx: 52, cy: 118 },
+    Midlands: { d: 'M72,106 L104,116 L132,104 L146,124 L140,150 L104,160 L76,150 L74,124 Z', cx: 107, cy: 132 },
+    London:   { d: 'M140,150 L158,146 L166,164 L150,174 L136,166 Z',
+                cx: 151, cy: 159, labelX: 174, labelY: 156, anchor: 'start', leader: 'M167,160 L172,158' },
+    South:    { d: 'M62,146 L76,150 L104,160 L136,166 L150,174 L138,200 L100,212 L66,196 L52,172 Z', cx: 100, cy: 180 }
+  };
+
+  let root = null;
+  const groupEls = {};
+  const pathEls = {};
+  const valueEls = {};
+
+  function mount() {
+    root = D.$('map');
+    B.subscribe(render);
+  }
+
+  /* Collapsed state (the chip-row view, under 900px) persists across
+     reloads — a player who prefers the compact map should not have to
+     re-collapse it every visit. Wrapped in try/catch: a private-mode
+     browser or a blocked store must not break the map. */
+  const COLLAPSE_KEY = 'ympm.next.mapCollapsed';
+  function getCollapsed() {
+    try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch (e) { return false; }
+  }
+  function setCollapsed(v) {
+    try { localStorage.setItem(COLLAPSE_KEY, v ? '1' : '0'); } catch (e) { /* ignore */ }
+  }
+  function toggleCollapsed() { setCollapsed(!getCollapsed()); render(); }
+
+  /* Shared by the full board (regionGroup) and the collapsed chip row
+     (chipRow): the one sentence that says everything about a region a
+     sighted player reads off its shape — name, approval, trend, status. */
+  function regionLabel(r, pins) {
+    const n = Math.abs(r.delta), pt = ' point' + (n === 1 ? '' : 's');
+    const trend = r.delta > 0 ? 'up ' + n + pt : r.delta < 0 ? 'down ' + n + pt : 'unchanged';
+    const signWords = r.signs.map(function (x) { return x.label; }).join('; ');
+    return r.name + ': ' + r.approval + '% approval, ' + trend + ' since last quarter. ' +
+      'Conditions ' + r.status.toLowerCase() + '.' + (signWords ? ' ' + signWords + '.' : '') +
+      (pins.length ? ' ' + pins.length + ' item' + (pins.length === 1 ? '' : 's') + ' on the desk here.' : '');
+  }
+
+  function chipRow(pinsByR) {
+    const row = D.h('div', { class: 'map-chip-row' });
+    E.regions().forEach(function (r) {
+      row.appendChild(D.h('button', {
+        class: 'map-chip', type: 'button', 'data-region': r.name,
+        'aria-label': regionLabel(r, pinsByR[r.name] || []),
+        onClick: function () { openRegion(r.name); }
+      },
+        D.h('span', { class: 'swatch', style: { background: F.fillForValue(r.approval) }, 'aria-hidden': 'true' }),
+        D.h('span', { class: 'map-chip-name', text: r.name }),
+        D.h('span', { class: 'map-chip-value', text: r.approval + '%' })));
+    });
+    return row;
+  }
+
+  function pinsByRegion() {
+    const out = {};
+    (E.state.agenda || []).forEach(function (entry) {
+      const card = E.agendaCard(entry);
+      if (!card || !card.region) return;
+      (out[card.region] = out[card.region] || []).push(card);
+    });
+    return out;
+  }
+
+  function regionGroup(r, pins) {
+    const shape = MAP_SHAPES[r.name];
+    const label = regionLabel(r, pins);
+
+    const group = D.svg('g', {
+      class: 'region', role: 'button', tabindex: '0', 'data-region': r.name,
+      'data-approval': String(r.approval), 'aria-label': label,
+      onClick: function () { openRegion(r.name); },
+      onKeydown: function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRegion(r.name); } }
+    });
+    const path = D.svg('path', { d: shape.d, class: 'map-shape', fill: F.fillForValue(r.approval) });
+    group.appendChild(path);
+    if (shape.leader) group.appendChild(D.svg('path', { d: shape.leader, class: 'map-leader' }));
+
+    const lx = shape.labelX === undefined ? shape.cx : shape.labelX;
+    const ly = shape.labelY === undefined ? shape.cy : shape.labelY;
+    const anchor = shape.anchor || 'middle';
+    const outside = shape.labelX !== undefined;
+    group.appendChild(D.svg('text', { x: lx, y: ly, class: 'map-name' + (outside ? ' outside' : ''), 'text-anchor': anchor }, r.name));
+    const valueEl = D.svg('text', { x: lx, y: ly + 11, class: 'map-value' + (outside ? ' outside' : ''), 'text-anchor': anchor }, r.approval + '%');
+    group.appendChild(valueEl);
+    if (r.signs.length) {
+      group.appendChild(D.svg('text', { x: lx, y: ly + 23, class: 'map-signs', 'text-anchor': anchor },
+        r.signs.map(function (x) { return x.icon; }).join(' ')));
+    }
+    if (pins.length) {
+      const pinY = ly - 22;
+      pins.slice(0, 3).forEach(function (card, i) {
+        group.appendChild(D.svg('circle', { cx: lx - 14 + i * 12, cy: pinY, r: 6, class: 'map-pin' + (card.urgent ? ' urgent' : '') }));
+        group.appendChild(D.svg('text', { x: lx - 14 + i * 12, y: pinY + 3, class: 'map-pin-icon', 'text-anchor': 'middle' }, card.icon || '•'));
+      });
+    }
+    groupEls[r.name] = group;
+    pathEls[r.name] = path;
+    valueEls[r.name] = valueEl;
+    return group;
+  }
+
+  function render() {
+    if (!root) return;
+    const pins = pinsByRegion();
+    const collapsed = getCollapsed();
+    const board = D.svg('svg', {
+      viewBox: '0 0 200 220', class: 'uk-map', role: 'group', 'aria-label': 'Map of Britain. Each region is a button.'
+    });
+    E.regions().forEach(function (r) {
+      if (!MAP_SHAPES[r.name]) return;
+      board.appendChild(regionGroup(r, pins[r.name] || []));
+    });
+    const toggleBtn = D.h('button', {
+      class: 'map-toggle btn ghost', type: 'button', 'aria-expanded': String(!collapsed),
+      onClick: toggleCollapsed
+    }, 'Britain ', D.icon(collapsed ? '▸' : '▾'));
+    D.replace(root,
+      D.h('div', { class: 'panel-head' },
+        D.h('h2', { text: 'Britain' }),
+        D.h('p', { class: 'muted small', text: 'Tap a region for the story behind the number.' }),
+        toggleBtn),
+      D.h('div', { class: 'map-wrap' }, board),
+      chipRow(pins),
+      legend());
+    root.classList.toggle('map-collapsed', collapsed);
+  }
+
+  function legend() {
+    const wrap = D.h('ul', { class: 'map-legend' });
+    ['Critical', 'Poor', 'Strained', 'Steady', 'Strong'].forEach(function (k) {
+      wrap.appendChild(D.h('li', null,
+        D.h('span', { class: 'swatch', style: { background: F.fillFor(k) }, 'aria-hidden': 'true' }),
+        D.h('span', { text: k })));
+    });
+    return wrap;
+  }
+
+  /* `from`, when given, counts the shown percentage up from there over
+     ~400ms (js/run.js). The fill and data-approval move to the true value
+     immediately; only the digits animate, and the shape's own fill colour
+     eases with it via the CSS transition on .map-shape. */
+  function setRegion(name, approval, from) {
+    const path = pathEls[name], valueEl = valueEls[name], group = groupEls[name];
+    const to = Math.round(approval);
+    if (path) path.setAttribute('fill', F.fillForValue(to));
+    if (group) group.setAttribute('data-approval', String(to));
+    if (valueEl) {
+      if (from !== undefined && from !== null && Math.round(from) !== to) {
+        D.tween(valueEl, Math.round(from), to, function (v) { return v + '%'; }, 400);
+      } else {
+        valueEl.textContent = to + '%';
+      }
+    }
+  }
+
+  function pulse(name, dir) {
+    const el = groupEls[name];
+    if (!el) return;
+    D.pulse(el, dir === 'up' ? 'pulse-up' : dir === 'down' ? 'pulse-down' : 'pulse');
+  }
+
+  function openRegion(name) {
+    const r = E.regionDetail(name);
+    const pts = function (n) { return n + ' point' + (n === 1 ? '' : 's'); };
+    const trend = r.delta > 0 ? 'Up ' + pts(r.delta) + ' since last quarter'
+                : r.delta < 0 ? 'Down ' + pts(Math.abs(r.delta)) + ' since last quarter'
+                : 'Unchanged since last quarter';
+    const body = [
+      D.h('p', { class: 'region-story', text: r.story }),
+      D.h('ul', { class: 'stat-list' },
+        D.h('li', null, D.h('span', {}, 'Approval here'), D.h('b', { text: r.approval + '%' })),
+        D.h('li', null, D.h('span', {}, 'Trend'), D.h('b', { text: trend })),
+        D.h('li', null, D.h('span', {}, 'Conditions'), D.h('b', { text: r.status }))),
+      r.signs.length ? D.h('h3', { text: 'What you would notice there' }) : null,
+      r.signs.length ? D.h('ul', { class: 'sign-list' }, r.signs.map(function (x) {
+        return D.h('li', null, D.icon(x.icon), D.h('span', { text: x.label }));
+      })) : null,
+      D.h('h3', { text: 'What this place cares about' }),
+      D.h('ul', { class: 'sign-list drivers' }, r.drivers.map(function (d) {
+        return D.h('li', null, D.h('b', { text: d.name }), D.h('span', { text: d.value + '/100' }));
+      }))
+    ];
+    B.open({ title: r.name, eyebrow: 'BRITAIN', body: body });
+  }
+
+  return { mount: mount, render: render, setRegion: setRegion, pulse: pulse, openRegion: openRegion };
+})();
