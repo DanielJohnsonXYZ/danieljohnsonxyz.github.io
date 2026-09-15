@@ -58,7 +58,9 @@ YM.desk = (function () {
           D.h('p', { class: 'eyebrow', text: card.category + (entry.urgent ? ' · Urgent' : '') }),
           D.h('p', { class: 'desk-card-title', text: card.title }),
           card.promise ? D.h('span', { class: 'chip gold', text: 'Your promise' }) : null),
-        coinRow(card.cost, ACTIONS_TOTAL, 'Costs ' + card.cost + ' of ' + ACTIONS_TOTAL + ' actions')));
+        D.h('span', { class: 'desk-card-cost', 'aria-label': 'Costs ' + card.cost + ' attention' },
+          D.h('span', { class: 'desk-card-cost-num', text: String(card.cost) }),
+          D.h('span', { class: 'desk-card-cost-label', text: 'attention' }))));
   }
 
   function leftBehindBlock(agenda, stage) {
@@ -91,7 +93,7 @@ YM.desk = (function () {
     const list = D.h('ul', { class: 'desk-list' }, items);
     const undone = agenda.filter(function (a) { return !a.done; }).length;
 
-    const runLabel = stage === 'first_card' ? 'Answer the strike first'
+    const runLabel = stage === 'first_card' ? 'Deal with the NHS strike first'
       : stage === 'promises' ? 'Choose your promises first'
       : s.turn === E.TURNS ? 'Face the voters'
       : undone ? 'Run the quarter · leave ' + undone : 'Run the quarter';
@@ -102,8 +104,8 @@ YM.desk = (function () {
     }, runLabel);
 
     const hint = s.bill ? 'A bill is before the Commons. Settle it before you can run the quarter.'
-      : stage === 'first_card' ? 'Answer the strike to begin'
-      : stage === 'promises' ? 'Choose your promises first'
+      : stage === 'first_card' ? 'Required before the government can move on.'
+      : stage === 'promises' ? 'Choose your promises first.'
       : (undone ? 'Running now is a deliberate choice to let ' + undone + ' unanswered item' + (undone === 1 ? '' : 's') + ' worsen.' : 'Everything on your desk has an answer.');
 
     const handle = D.h('button', {
@@ -115,12 +117,13 @@ YM.desk = (function () {
       class: 'panel-head-btn', type: 'button', 'aria-expanded': String(expanded),
       onClick: toggleExpanded
     }, 'Your desk');
+    const attention = D.h('div', { class: 'desk-attention' },
+      D.h('span', { text: 'Attention' }),
+      coinRow(ACTIONS_TOTAL - s.actionsLeft, ACTIONS_TOTAL, s.actionsLeft + ' of ' + ACTIONS_TOTAL + ' attention left'));
 
     D.replace(root,
       handle,
-      D.h('div', { class: 'panel-head' },
-        heading,
-        coinRow(ACTIONS_TOTAL - s.actionsLeft, ACTIONS_TOTAL, s.actionsLeft + ' of ' + ACTIONS_TOTAL + ' actions left')),
+      D.h('div', { class: 'panel-head' }, heading, attention),
       D.h('div', { class: 'desk-scroll' },
         items.length ? list : D.h('p', { class: 'muted', text: 'Nothing on the desk. Run the quarter to see what comes next.' })),
       D.h('div', { class: 'desk-run' }, leftBehindBlock(agenda, stage), runBtn, D.h('p', { class: 'muted small', text: hint })));
