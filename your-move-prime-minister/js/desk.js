@@ -1,5 +1,5 @@
 /* The desk: what is waiting for an answer, what has already been answered
-   this quarter, how much attention is left, and the button that ends it. */
+   this quarter, how much attention is left, and the button that advances time. */
 
 window.YM = window.YM || {};
 YM.desk = (function () {
@@ -76,9 +76,34 @@ YM.desk = (function () {
     }).filter(Boolean);
     if (!list.length) return null;
     return D.h('div', { class: 'score-block desk-left-behind' },
-      D.h('p', { class: 'eyebrow', text: 'IF YOU RUN THE QUARTER NOW' }),
+      D.h('p', { class: 'eyebrow', text: 'IF YOU ADVANCE NOW' }),
       D.h('p', { class: 'small', text: 'You are choosing to leave these unanswered:' }),
       D.h('ul', { class: 'matured-list' }, list));
+  }
+
+  function maybeFirstFullQuarterCoach(s, stage, undone) {
+    if (B.scene.overlays.length) return;
+    const o = E.onboarding();
+    const firstFullQuarter = stage === 'done' && E.history().length === 1;
+    if (!firstFullQuarter) return;
+
+    if (s.actionsLeft === ACTIONS_TOTAL && !o.seen.first_real_desk) {
+      const first = root.querySelector('.desk-card:not(.done) .desk-card-btn');
+      if (first) {
+        YM.onboarding.coach('first_real_desk', first,
+          'Start here. Your desk is where you govern. Open an issue, make a choice, then come back and decide what deserves the rest of your attention.');
+      }
+      return;
+    }
+
+    if (s.actionsLeft < ACTIONS_TOTAL) {
+      const left = s.actionsLeft;
+      YM.onboarding.coach('first_attention_after_choice', root.querySelector('.desk-attention'),
+        'You have ' + left + ' Attention left this quarter. You do not need to clear the whole desk.');
+      YM.onboarding.coach('first_advance_after_choice', runBtn,
+        undone ? 'When you are ready, advance the quarter. The ' + undone + ' unresolved issue' + (undone === 1 ? '' : 's') + ' will worsen.'
+               : 'When you are ready, advance the quarter and watch Britain respond.');
+    }
   }
 
   function render() {
@@ -95,18 +120,20 @@ YM.desk = (function () {
 
     const runLabel = stage === 'first_card' ? 'Deal with the NHS strike first'
       : stage === 'promises' ? 'Choose your promises first'
+      : stage === 'first_run' ? 'Advance to your first full quarter'
       : s.turn === E.TURNS ? 'Face the voters'
-      : undone ? 'Run the quarter · leave ' + undone : 'Run the quarter';
+      : 'Advance to next quarter';
     runBtn = D.h('button', {
       id: 'run-btn', class: 'btn big block' + (stage === 'first_run' ? ' glow' : ''), type: 'button',
       disabled: !!s.bill || tutorialBlocked,
       onClick: function () { YM.run.quarter(); }
     }, runLabel);
 
-    const hint = s.bill ? 'A bill is before the Commons. Settle it before you can run the quarter.'
+    const hint = s.bill ? 'A bill is before the Commons. Settle it before you can advance.'
       : stage === 'first_card' ? 'Required before the government can move on.'
       : stage === 'promises' ? 'Choose your promises first.'
-      : (undone ? 'Running now is a deliberate choice to let ' + undone + ' unanswered item' + (undone === 1 ? '' : 's') + ' worsen.' : 'Everything on your desk has an answer.');
+      : stage === 'first_run' ? 'This starts your first full quarter of government.'
+      : (undone ? undone + ' unresolved issue' + (undone === 1 ? '' : 's') + ' will worsen if you advance.' : 'Everything on your desk has an answer.');
 
     const handle = D.h('button', {
       class: 'desk-handle', type: 'button', 'aria-expanded': String(expanded),
@@ -125,7 +152,7 @@ YM.desk = (function () {
       handle,
       D.h('div', { class: 'panel-head' }, heading, attention),
       D.h('div', { class: 'desk-scroll' },
-        items.length ? list : D.h('p', { class: 'muted', text: 'Nothing on the desk. Run the quarter to see what comes next.' })),
+        items.length ? list : D.h('p', { class: 'muted', text: 'Nothing on the desk. Advance the quarter to see what comes next.' })),
       D.h('div', { class: 'desk-run' }, leftBehindBlock(agenda, stage), runBtn, D.h('p', { class: 'muted small', text: hint })));
 
     root.classList.toggle('desk-expanded', expanded);
@@ -138,8 +165,11 @@ YM.desk = (function () {
       YM.onboarding.coach('promises_card', root.querySelector('.party-chair .desk-card-btn'),
         'Open this to choose your promises');
     } else if (stage === 'first_run') {
-      YM.onboarding.coach('run_btn', runBtn, 'Now run the quarter and watch Britain respond');
+      YM.onboarding.coach('run_btn', runBtn,
+        'Advance the quarter to begin your first full round of government.');
     }
+
+    maybeFirstFullQuarterCoach(s, stage, undone);
   }
 
   function setEnabled(enabled) {
