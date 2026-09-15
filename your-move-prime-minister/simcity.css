@@ -1,0 +1,389 @@
+/* World-first UX layer.
+   Keep the simulation deep, but make the surface read like a game: the world
+   in front of you, the next move obvious, and detail available on demand. */
+
+/* ------------------------------------------------------------ top HUD */
+#hud {
+  gap: 10px 14px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.hud-stats {
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+}
+
+.hud-stat-primary {
+  min-width: 104px;
+  padding: 7px 10px;
+  border: 1px solid rgba(168,189,214,.16);
+  border-radius: 9px;
+  background: rgba(255,255,255,.035);
+}
+
+.hud-stat-primary .hud-stat-value {
+  font-size: 21px;
+}
+
+.hud-stat-secondary {
+  display: none;
+  min-width: 86px;
+  padding: 7px 9px;
+  border-left: 1px solid var(--navy-line);
+}
+
+.hud-government-open .hud-stat-secondary {
+  display: block;
+}
+
+.hud-government-toggle {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 6px 9px;
+  font-size: 11px;
+  border: 1px solid rgba(168,189,214,.16);
+}
+
+.hud-promises {
+  margin-left: auto;
+}
+
+.promise-chip {
+  gap: 6px;
+}
+
+.promise-chip-status {
+  margin-left: 2px;
+  padding-left: 6px;
+  border-left: 1px solid currentColor;
+  opacity: .82;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+}
+
+/* ------------------------------------------------------ the living world */
+#map {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 45% 46%, rgba(65,105,147,.18), transparent 46%),
+    linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,0)),
+    var(--navy-raised);
+}
+
+.map-panel-head {
+  position: relative;
+  z-index: 2;
+  align-items: flex-start;
+}
+
+.map-panel-head p {
+  margin: 1px 0 0;
+}
+
+.map-summary {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px;
+  padding: 9px 11px;
+  border: 1px solid rgba(215,173,83,.22);
+  border-radius: 9px;
+  background: rgba(4,13,26,.35);
+}
+
+.map-summary-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.map-summary-kicker {
+  color: var(--gold);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.map-summary-state {
+  color: var(--pale);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+}
+
+.map-summary-facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px 10px;
+  color: var(--pale-muted);
+  font-size: 10.5px;
+}
+
+.map-summary-facts span + span::before {
+  content: '•';
+  margin-right: 9px;
+  color: var(--gold);
+  opacity: .75;
+}
+
+.map-help {
+  margin-top: 6px;
+  color: var(--pale-muted);
+  font-size: 11px;
+}
+
+.map-help summary {
+  display: inline-block;
+  cursor: pointer;
+  color: var(--pale-muted);
+  font-weight: 700;
+}
+
+.map-help summary:hover {
+  color: var(--pale);
+}
+
+.map-help p {
+  margin: 7px 0 4px;
+  max-width: 62ch;
+}
+
+.map-help .map-legend {
+  margin-top: 5px;
+}
+
+/* Make the board feel like the world, not a boxed chart. */
+.map-wrap {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.region {
+  transition: filter .16s ease, transform .16s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.region:hover,
+.region:focus {
+  filter: brightness(1.08);
+}
+
+/* --------------------------------------------------------- decisions */
+.adviser-quick {
+  margin: 12px 0 14px;
+  padding: 9px 11px;
+  border-left: 3px solid var(--gold-deep);
+  border-radius: 0 7px 7px 0;
+  background: rgba(136,103,32,.07);
+}
+
+.adviser-quick .adviser {
+  padding: 0;
+  border: 0;
+}
+
+.decision-question {
+  margin-top: 15px;
+  margin-bottom: 8px;
+  font-size: 19px;
+}
+
+.decision-choices .choice {
+  position: relative;
+  padding: 13px 14px;
+  border-width: 1px;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+.decision-choices .choice:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(136,103,32,.55);
+  box-shadow: 0 7px 18px rgba(22,32,47,.09);
+}
+
+.choice-chips {
+  margin-top: 8px;
+}
+
+.explain-toggle {
+  width: 100%;
+  margin-top: 10px;
+  color: var(--gold-deep) !important;
+  border-color: rgba(136,103,32,.35) !important;
+}
+
+/* ------------------------------------------------------ decision result */
+.friendly-outcome {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.outcome-choice {
+  margin: 0 0 9px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.outcome-headline {
+  margin-top: 2px;
+  font-size: 21px;
+}
+
+.outcome-now,
+.outcome-later {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--cream-line);
+}
+
+.outcome-now .eyebrow,
+.outcome-later .eyebrow {
+  margin-bottom: 7px;
+}
+
+.outcome-impacts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 7px;
+}
+
+.outcome-impact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--cream-line);
+  background: rgba(255,255,255,.45);
+}
+
+.outcome-impact.up {
+  border-left: 4px solid var(--good);
+}
+
+.outcome-impact.down {
+  border-left: 4px solid var(--bad);
+}
+
+.outcome-impact-arrow {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.outcome-impact.up .outcome-impact-arrow {
+  color: var(--good);
+}
+
+.outcome-impact.down .outcome-impact-arrow {
+  color: var(--bad);
+}
+
+.outcome-impact-value {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.outcome-later {
+  padding: 10px 11px;
+  border: 1px dashed rgba(136,103,32,.38);
+  border-radius: 8px;
+  background: rgba(215,173,83,.07);
+}
+
+.outcome-later p:last-child {
+  margin-bottom: 0;
+}
+
+.friendly-outcome > .btn {
+  margin-top: 14px;
+}
+
+/* ---------------------------------------------------------- game rhythm */
+/* Keep the action surface visually strongest. Britain and indicators stay
+   explorable, but the eye lands on the desk first. */
+#desk {
+  box-shadow: 0 12px 30px rgba(0,0,0,.18);
+}
+
+#dials {
+  background: rgba(14,36,64,.82);
+}
+
+/* -------------------------------------------------------------- mobile */
+@media (max-width: 899px) {
+  #hud {
+    gap: 6px 8px;
+  }
+
+  .hud-stat-primary {
+    min-width: 0;
+    padding: 5px 7px;
+  }
+
+  .hud-stat-primary .hud-stat-value {
+    font-size: 17px;
+  }
+
+  .hud-government-toggle {
+    order: 5;
+    min-height: 30px;
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+
+  .hud-stat-secondary {
+    padding: 5px 6px;
+  }
+
+  .map-summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px 9px;
+  }
+
+  .map-summary-facts {
+    justify-content: flex-start;
+  }
+
+  .map-summary-facts span + span::before {
+    margin-right: 6px;
+  }
+
+  .decision-choices .choice {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 560px) {
+  .hud-promises .promise-chip-status {
+    display: none;
+  }
+
+  .hud-government-open .hud-stat-secondary {
+    display: none;
+  }
+
+  .hud-government-toggle {
+    display: none;
+  }
+
+  .map-summary-facts span:last-child {
+    display: none;
+  }
+
+  .outcome-impacts {
+    grid-template-columns: 1fr;
+  }
+}
