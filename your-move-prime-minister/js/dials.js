@@ -23,6 +23,18 @@ YM.dials = (function () {
     return Math.round(E.state.indicators[key]) - Math.round(prevVal);
   }
 
+  function trendText(delta) {
+    if (!delta) return F.trendArrow(0);
+    return F.trendArrow(delta) + ' ' + (delta > 0 ? '+' : '') + delta;
+  }
+
+  function setTrend(el, delta) {
+    if (!el) return;
+    el.className = 'dial-trend ' + (delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat');
+    el.setAttribute('aria-label', 'Trend: ' + F.trendWord(delta) + (delta ? ' by ' + Math.abs(delta) : ''));
+    el.textContent = trendText(delta);
+  }
+
   function tile(key) {
     const r = E.readout(key);
     const delta = trendFor(key);
@@ -30,8 +42,9 @@ YM.dials = (function () {
     const headline = D.h('p', { class: 'dial-headline', text: r.headline });
     const trend = D.h('span', {
       class: 'dial-trend ' + (delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'),
-      'aria-label': 'Trend: ' + F.trendWord(delta) + (delta ? ' by ' + Math.abs(delta) : '')
-    }, D.icon(F.trendArrow(delta)));
+      'aria-label': 'Trend: ' + F.trendWord(delta) + (delta ? ' by ' + Math.abs(delta) : ''),
+      text: trendText(delta)
+    });
 
     const bar = D.h('div', {
       class: 'dial-bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100',
@@ -67,10 +80,13 @@ YM.dials = (function () {
     const r = E.readoutValue(key, value);
     const tileEl = tileEls[key];
     if (!tileEl) return;
+    const previous = Number(tileEl.getAttribute('data-value'));
+    const delta = Number.isFinite(previous) ? Math.round(r.value) - Math.round(previous) : 0;
     tileEl.setAttribute('data-value', String(r.value));
     if (headlineEls[key]) headlineEls[key].textContent = r.headline;
     if (fillEls[key]) { fillEls[key].style.width = r.value + '%'; fillEls[key].style.background = F.fillFor(r.status); }
     if (barEls[key]) { barEls[key].setAttribute('aria-valuenow', String(r.value)); barEls[key].setAttribute('aria-valuetext', r.headline); }
+    setTrend(trendEls[key], delta);
   }
 
   function pulse(key, dir) {
@@ -87,8 +103,13 @@ YM.dials = (function () {
       D.h('p', { class: 'muted', text: r.detail }),
       D.h('p', null, D.h('span', { class: 'chip', text: r.status })),
       D.h('h3', { text: 'The last few quarters' }),
-      D.h('ul', { class: 'stat-list' }, hist.map(function (p) {
-        return D.h('li', null, D.h('span', {}, 'Turn ' + p.t), D.h('b', { text: (p.i[key] !== undefined ? p.i[key] : '—') + '/100' }));
+      D.h('ul', { class: 'stat-list' }, hist.map(function (p, i) {
+        const prev = i > 0 && hist[i - 1].i[key] !== undefined ? hist[i - 1].i[key] : null;
+        const now = p.i[key] !== undefined ? p.i[key] : null;
+        const delta = prev !== null && now !== null ? Math.round(now) - Math.round(prev) : 0;
+        return D.h('li', null,
+          D.h('span', {}, 'Turn ' + p.t),
+          D.h('b', { text: (now !== null ? now : '—') + '/100' + (delta ? '  ' + trendText(delta) : '') }));
       }))
     ];
     B.open({ title: r.name, eyebrow: 'HOW BRITAIN IS DOING', body: body });
