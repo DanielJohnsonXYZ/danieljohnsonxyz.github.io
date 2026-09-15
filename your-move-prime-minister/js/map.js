@@ -1,6 +1,6 @@
-/* Britain, as a board rather than a chart: six places you can point at, each
-   filled by how it is actually doing, each carrying the pins for whatever is
-   on the desk about it. Tapping a region opens the story behind its number. */
+/* Britain is the world the player is governing, not a chart. The map keeps
+   regional detail, but the first read is now one human summary: how the
+   country feels, what is hurting most, and where to look. */
 
 window.YM = window.YM || {};
 YM.map = (function () {
@@ -35,19 +35,39 @@ YM.map = (function () {
   }
   function toggleCollapsed() { setCollapsed(!getCollapsed()); render(); }
 
-  function trendGlyph(delta) {
-    return delta > 0 ? '↑' : delta < 0 ? '↓' : '→';
-  }
-
-  function trendShort(delta) {
-    return trendGlyph(delta) + (delta ? Math.abs(delta) : '');
-  }
+  function trendGlyph(delta) { return delta > 0 ? '↑' : delta < 0 ? '↓' : '→'; }
+  function trendShort(delta) { return trendGlyph(delta) + (delta ? Math.abs(delta) : ''); }
 
   function biggestProblem(name) {
     const detail = E.regionDetail(name);
     if (!detail || !detail.drivers || !detail.drivers.length) return null;
-    const sorted = detail.drivers.slice().sort(function (a, b) { return a.value - b.value; });
-    return sorted[0];
+    return detail.drivers.slice().sort(function (a, b) { return a.value - b.value; })[0];
+  }
+
+  function nationalCondition() {
+    const readings = F.DIAL_KEYS.map(function (key) { return E.readout(key); });
+    const avg = readings.reduce(function (sum, r) { return sum + r.value; }, 0) / Math.max(1, readings.length);
+    if (avg >= 70) return 'strong';
+    if (avg >= 55) return 'steady';
+    if (avg >= 42) return 'under pressure';
+    if (avg >= 28) return 'struggling';
+    return 'in crisis';
+  }
+
+  function nationalSummary() {
+    const readings = F.DIAL_KEYS.map(function (key) { return E.readout(key); })
+      .sort(function (a, b) { return a.value - b.value; });
+    const worst = readings[0];
+    const regions = E.regions().slice().sort(function (a, b) { return a.approval - b.approval; });
+    const weakest = regions[0];
+    return D.h('div', { class: 'map-summary', role: 'status' },
+      D.h('div', { class: 'map-summary-main' },
+        D.h('span', { class: 'map-summary-kicker', text: 'BRITAIN NOW' }),
+        D.h('strong', { class: 'map-summary-state', text: 'The country is ' + nationalCondition() + '.' })),
+      D.h('div', { class: 'map-summary-facts' },
+        D.h('span', { text: 'Biggest pressure: ' + (worst ? worst.name : '—') }),
+        weakest ? D.h('span', { text: 'Weakest support: ' + weakest.name + ' ' + weakest.approval + '%' }) : null,
+        D.h('span', { text: 'Click any region to see why.' })));
   }
 
   function regionLabel(r, pins) {
@@ -91,7 +111,6 @@ YM.map = (function () {
   function regionGroup(r, pins) {
     const shape = MAP_SHAPES[r.name];
     const label = regionLabel(r, pins);
-
     const group = D.svg('g', {
       class: 'region', role: 'button', tabindex: '0', 'data-region': r.name,
       'data-approval': String(r.approval), 'aria-label': label,
@@ -140,15 +159,21 @@ YM.map = (function () {
     const toggleBtn = D.h('button', {
       class: 'map-toggle btn ghost', type: 'button', 'aria-expanded': String(!collapsed),
       onClick: toggleCollapsed
-    }, 'Britain ', D.icon(collapsed ? '▸' : '▾'));
+    }, collapsed ? 'Show map' : 'Hide map');
+    const help = D.h('details', { class: 'map-help' },
+      D.h('summary', { text: 'How to read the map' }),
+      D.h('p', { class: 'muted small', text: 'The percentage is government approval in that region. Arrows show whether support moved last quarter. Colour shows the overall condition.' }),
+      legend());
     D.replace(root,
-      D.h('div', { class: 'panel-head' },
-        D.h('h2', { text: 'Britain' }),
-        D.h('p', { class: 'muted small', text: 'Approval, direction and the biggest pressure in each region.' }),
+      D.h('div', { class: 'panel-head map-panel-head' },
+        D.h('div', null,
+          D.h('h2', { text: 'Britain' }),
+          D.h('p', { class: 'muted small', text: 'This is the country reacting to your decisions.' })),
         toggleBtn),
+      nationalSummary(),
       D.h('div', { class: 'map-wrap' }, board),
       chipRow(pins),
-      legend());
+      help);
     root.classList.toggle('map-collapsed', collapsed);
   }
 
@@ -200,11 +225,11 @@ YM.map = (function () {
         D.h('li', null, D.h('span', {}, 'Approval here'), D.h('b', { text: r.approval + '%' })),
         D.h('li', null, D.h('span', {}, 'Trend'), D.h('b', { text: trend })),
         D.h('li', null, D.h('span', {}, 'Conditions'), D.h('b', { text: r.status }))),
-      r.signs.length ? D.h('h3', { text: 'What you would notice there' }) : null,
+      r.signs.length ? D.h('h3', { text: 'What people here are noticing' }) : null,
       r.signs.length ? D.h('ul', { class: 'sign-list' }, r.signs.map(function (x) {
         return D.h('li', null, D.icon(x.icon), D.h('span', { text: x.label }));
       })) : null,
-      D.h('h3', { text: 'What this place cares about' }),
+      D.h('h3', { text: 'What matters most here' }),
       D.h('ul', { class: 'sign-list drivers' }, drivers.map(function (d) {
         return D.h('li', null, D.h('b', { text: d.name }), D.h('span', { text: d.value + '/100' }));
       }))

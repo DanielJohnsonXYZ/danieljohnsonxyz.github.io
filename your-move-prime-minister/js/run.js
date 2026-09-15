@@ -1,24 +1,12 @@
 /* Running the quarter: the engine settles everything in one call, but the
-   player should *watch* it happen rather than read a summary of it. This
-   turns report.timeline into a short, skippable show — thirteen "weeks"
-   ticking past on the ticker, a callout over the map for each thing that
-   actually happened, the dials and the map sliding to their new numbers —
-   before the scorecard opens with everything already landed.
-
-   Resume convention: E.endTurn() leaves E.state.phase === 'consequences'.
-   That value is left untouched for as long as this quarter's scorecard is
-   still open, including mid-animation — a reload in that window means the
-   game reopens the same scorecard with no animation (js/app.js). Dismissing
-   the scorecard (next(), below) is what moves E.state.phase on to
-   'decision' — the same value E.decide() already uses for "a turn is under
-   way" — so a reload after that point resumes on the desk as normal. */
+   player watches Britain react before getting a short, game-like summary. */
 
 window.YM = window.YM || {};
 YM.run = (function () {
   'use strict';
   const E = window.Engine, D = YM.dom, B = YM.bus, F = YM.fmt;
 
-  const WEEK_MS = 520;
+  const WEEK_MS = 410;
   const TOTAL_WEEKS = 13;
   const BG_KINDS = ['drift', 'approval', 'fiscal', 'interest', 'surplus', 'confidence', 'strain'];
 
@@ -34,19 +22,27 @@ YM.run = (function () {
     return row;
   }
 
-  function immediateBlock(report) {
-    const rises = report.immediate.filter(function (c) { return c.delta > 0; })
-      .sort(function (a, b) { return Math.abs(b.delta) - Math.abs(a.delta); }).slice(0, 3);
-    const falls = report.immediate.filter(function (c) { return c.delta < 0; })
-      .sort(function (a, b) { return Math.abs(b.delta) - Math.abs(a.delta); }).slice(0, 3);
-    if (!rises.length && !falls.length) return null;
-    const row = D.h('div', { class: 'change-chips' });
-    rises.forEach(function (c) { row.appendChild(changeRow(c)); });
-    falls.forEach(function (c) { row.appendChild(changeRow(c)); });
-    return D.h('section', { class: 'score-block' },
-      D.h('h3', { text: 'Net movement this quarter' }),
-      D.h('p', { class: 'muted small', text: 'This is where Britain ended up after your choices, delayed effects and the things you left alone.' }),
-      row);
+  function movementTile(label, change) {
+    if (!change) return null;
+    const up = change.delta > 0;
+    return D.h('div', { class: 'quarter-move ' + (up ? 'up' : 'down') },
+      D.h('span', { class: 'quarter-move-label', text: label }),
+      D.h('strong', { text: (up ? '↑ ' : '↓ ') + F.deltaChip(change) }),
+      D.h('span', { class: 'quarter-move-detail', text: F.deltaText(change) }));
+  }
+
+  function quarterVerdict(report) {
+    const gains = report.immediate.filter(function (c) { return c.delta > 0; })
+      .sort(function (a, b) { return Math.abs(b.delta) - Math.abs(a.delta); });
+    const losses = report.immediate.filter(function (c) { return c.delta < 0; })
+      .sort(function (a, b) { return Math.abs(b.delta) - Math.abs(a.delta); });
+    if (!gains.length && !losses.length) return null;
+    return D.h('section', { class: 'score-block quarter-verdict' },
+      D.h('p', { class: 'eyebrow', text: 'QUARTER RESULT' }),
+      D.h('h3', { text: 'The biggest movements' }),
+      D.h('div', { class: 'quarter-moves' },
+        movementTile('Biggest gain', gains[0]),
+        movementTile('Biggest setback', losses[0])));
   }
 
   function causeChainBlock(report) {
@@ -54,20 +50,20 @@ YM.run = (function () {
     report.matured.forEach(function (m) {
       items.push(D.h('li', null,
         D.h('p', null,
-          D.h('b', { text: 'Because you chose ' + (m.causeChoice || m.cause) }),
+          D.h('b', { text: 'You chose ' + (m.causeChoice || m.cause) }),
           D.h('span', { text: ' → ' + m.text })),
         changesWrap(m.changes || [])));
     });
     report.neglected.forEach(function (n) {
       items.push(D.h('li', null,
         D.h('p', null,
-          D.h('b', { text: 'Because you left ' + n.title + ' unanswered' }),
+          D.h('b', { text: 'You left ' + n.title + ' unanswered' }),
           D.h('span', { text: ' → ' + n.text })),
         D.h('span', { class: 'chip down', text: F.deltaChip(n.change) })));
     });
     if (!items.length) return null;
-    return D.h('section', { class: 'score-block' },
-      D.h('h3', { text: 'Why it moved' }),
+    return D.h('section', { class: 'score-block cause-chain' },
+      D.h('h3', { text: 'Why it changed' }),
       D.h('ul', { class: 'matured-list' }, items));
   }
 
@@ -81,36 +77,41 @@ YM.run = (function () {
       row.appendChild(D.h('span', { class: 'chip ' + cls, text: p.label + ': ' + p.status }));
     });
     return D.h('section', { class: 'score-block' },
-      D.h('h3', { text: 'Your promises now' }), row);
+      D.h('h3', { text: 'Your promises' }), row);
+  }
+
+  function pressureBlock(report) {
+    const lines = [];
+    if (report.abandonedBill) lines.push('Your ' + report.abandonedBill + ' lapsed because Parliament rose before you brought it to a vote.');
+    if (report.interest) lines.push('Debt interest cost £' + report.interest.cost.toFixed(1) + 'bn this quarter.');
+    if (report.strain && report.strain.text) lines.push(report.strain.text);
+    if (!lines.length) return null;
+    return D.h('section', { class: 'score-block quarter-pressure' },
+      D.h('h3', { text: 'Other pressure' }),
+      D.h('ul', { class: 'sign-list' }, lines.map(function (line) { return D.h('li', { text: line }); })));
   }
 
   function buildBody(report) {
     const blocks = [];
     if (report.headline) {
-      blocks.push(D.h('div', { class: 'paper' },
-        D.h('p', { class: 'eyebrow', text: 'The Herald' }),
+      blocks.push(D.h('div', { class: 'paper quarter-headline' },
+        D.h('p', { class: 'eyebrow', text: 'THE HERALD' }),
         D.h('h3', { class: 'serif', text: report.headline.headline }),
         D.h('p', { text: report.headline.deck })));
     }
-    if (report.abandonedBill) {
-      blocks.push(D.h('p', { class: 'muted', text: 'Your ' + report.abandonedBill + ' lapsed because Parliament rose before you brought it to a vote.' }));
-    }
-    if (report.interest) {
-      blocks.push(D.h('p', { class: 'muted', text: 'Debt interest cost £' + report.interest.cost.toFixed(1) + 'bn this quarter.' }));
-    }
-    if (report.strain) {
-      blocks.push(D.h('p', { class: 'muted', text: report.strain.text }));
-    }
+    blocks.push(quarterVerdict(report));
     blocks.push(causeChainBlock(report));
-    blocks.push(immediateBlock(report));
+    blocks.push(pressureBlock(report));
     blocks.push(promiseBlock());
     if (report.coming) {
-      blocks.push(D.h('p', { class: 'coming', text: 'Coming: ' + report.coming.text + ' — in ' + report.coming.quarters + ' quarter' + (report.coming.quarters === 1 ? '' : 's') }));
+      blocks.push(D.h('div', { class: 'coming quarter-coming' },
+        D.h('p', { class: 'eyebrow', text: 'ON THE HORIZON' }),
+        D.h('p', { text: report.coming.text + ', in ' + report.coming.quarters + ' quarter' + (report.coming.quarters === 1 ? '' : 's') }))); 
     }
     blocks.push(D.h('button', {
       class: 'btn big block', type: 'button',
       onClick: function () { next(report); }
-    }, report.final ? 'To the count' : 'Next quarter'));
+    }, report.final ? 'To the count' : 'Continue governing'));
     return blocks.filter(Boolean);
   }
 
@@ -123,8 +124,9 @@ YM.run = (function () {
       eyebrow: F.when(report.turn), locked: true, body: buildBody(report)
     });
     handle.el.id = 'scorecard';
+    handle.el.classList.add('quarter-scorecard');
     if (E.onboarding().stage === 'first_run' && D.motion() !== 'reduced') {
-      YM.onboarding.coach('run_scorecard', handle.el, 'What changed, why it changed, and what is still coming');
+      YM.onboarding.coach('run_scorecard', handle.el, 'This is the loop: what changed, why it changed, and what comes next.');
     }
   }
 
@@ -188,7 +190,7 @@ YM.run = (function () {
   function buildTicker(report) {
     const el = D.$('ticker');
     const weekEl = D.h('span', { class: 'ticker-week', text: 'Week 1 of ' + TOTAL_WEEKS });
-    const lineEl = D.h('span', { class: 'ticker-line', text: 'Running ' + F.when(report.turn) + '…' });
+    const lineEl = D.h('span', { class: 'ticker-line', text: 'Britain is moving through ' + F.when(report.turn) + '…' });
     const skipBtn = D.h('button', {
       id: 'skip-run', class: 'btn ghost ticker-skip', type: 'button',
       onClick: function () { if (activeSeq) activeSeq.finish(); }
@@ -239,14 +241,14 @@ YM.run = (function () {
 
     switch (entry.kind) {
       case 'bill_lapsed': {
-        const text = entry.name + ' lapsed — Parliament rose';
+        const text = entry.name + ' lapsed, Parliament rose';
         tickerLine(text);
         showCallout(deskAnchor(), null, text, null);
         break;
       }
       case 'matured': {
         const cause = entry.causeChoice ? 'You chose ' + entry.causeChoice : (entry.cause || '');
-        tickerLine(cause ? cause + ' · ' + entry.text : entry.text);
+        tickerLine(cause ? cause + ' • ' + entry.text : entry.text);
         showCallout(regionAnchor(entry.region), cause, entry.text, entry.changes);
         break;
       }
@@ -351,9 +353,9 @@ YM.run = (function () {
     B.setPhase('running');
     YM.desk.setEnabled(false);
     buildTicker(report);
-    D.announce('Running the quarter');
+    D.announce('Britain is moving through the quarter');
     if (E.onboarding().stage === 'first_run' && D.motion() !== 'reduced') {
-      YM.onboarding.coach('run_ticker', D.$('ticker'), 'The country moves whether you act or not');
+      YM.onboarding.coach('run_ticker', D.$('ticker'), 'Time is moving. Watch Britain react to what you did and what you left alone.');
     }
 
     const items = buildSteps(report);
