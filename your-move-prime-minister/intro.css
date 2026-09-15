@@ -103,12 +103,103 @@
   margin-top: 2px;
 }
 
+/* The second onboarding screen explains the actual loop, after the player has
+   made one decision and chosen promises, but before the full control room. */
+.cabinet-overlay {
+  width: min(100%, 720px);
+}
+
+.cabinet-briefing {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cabinet-opening {
+  margin: 0;
+  max-width: 52ch;
+  font-size: clamp(20px, 2.6vw, 25px);
+  line-height: 1.28;
+}
+
+.cabinet-loop {
+  display: grid;
+  gap: 9px;
+}
+
+.cabinet-step {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 13px 14px;
+  border: 1px solid var(--cream-line);
+  border-radius: 8px;
+  background: rgba(240,228,203,.52);
+}
+
+.cabinet-step-number {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+  background: var(--navy-deep);
+  color: var(--gold);
+  font: 700 20px Georgia, "Times New Roman", serif;
+}
+
+.cabinet-step h3 {
+  margin: 1px 0 4px;
+  font-size: 17px;
+}
+
+.cabinet-step p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cabinet-goal {
+  padding: 14px 16px;
+  border-left: 4px solid var(--gold-deep);
+  border-radius: 6px;
+  background: var(--pale);
+}
+
+.cabinet-goal .eyebrow {
+  margin-bottom: 4px;
+}
+
+.cabinet-goal p:last-child {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.cabinet-note {
+  margin: -4px 0 0;
+}
+
+/* Coach marks should visually point to the control they describe. */
+.coach-target {
+  position: relative;
+  z-index: 31;
+  outline: 3px solid var(--gold) !important;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 7px rgba(215,173,83,.12), 0 0 28px rgba(215,173,83,.28) !important;
+}
+
 @media (max-width: 640px) {
-  .intro-overlay .overlay-title {
+  .intro-overlay .overlay-title,
+  .cabinet-overlay .overlay-title {
     font-size: 25px;
   }
 
-  .intro-opening {
+  .intro-opening,
+  .cabinet-opening {
     font-size: 20px;
   }
 
@@ -130,5 +221,16 @@
   .intro-redbox-mark {
     width: 50px;
     height: 33px;
+  }
+
+  .cabinet-step {
+    grid-template-columns: 34px 1fr;
+    padding: 11px;
+  }
+
+  .cabinet-step-number {
+    width: 32px;
+    height: 32px;
+    font-size: 17px;
   }
 }

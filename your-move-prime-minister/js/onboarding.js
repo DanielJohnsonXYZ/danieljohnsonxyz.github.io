@@ -1,6 +1,6 @@
-/* The title screen, first-day briefing, coach marks, and the promises picker.
-   A new player gets the premise and the few rules that matter, then learns
-   the rest by governing. */
+/* The title screen, first-day briefing, Cabinet briefing, coach marks, and
+   promises picker. A new player gets the premise first, then a simple game
+   loop, then learns the rest by governing. */
 
 window.YM = window.YM || {};
 YM.onboarding = (function () {
@@ -11,6 +11,7 @@ YM.onboarding = (function () {
 
   let introPending = false;
   let introHandle = null;
+  let cabinetHandle = null;
 
   function startNewTerm() {
     E.reset();
@@ -43,9 +44,18 @@ YM.onboarding = (function () {
     startNewTerm();
   }
 
+  function maybeBriefExistingTerm() {
+    const o = E.onboarding();
+    if (E.state.turn > 4) return;
+    if (o.stage === 'first_card' || o.stage === 'promises') return;
+    if (o.seen.cabinet_briefing) return;
+    window.setTimeout(openCabinetBriefing, 0);
+  }
+
   function continueTerm() {
     E.load();
     YM.app.enterScene();
+    maybeBriefExistingTerm();
   }
 
   function title() {
@@ -104,6 +114,50 @@ YM.onboarding = (function () {
     });
   }
 
+  /* ------------------------------------------------------ Cabinet briefing */
+
+  function cabinetStep(number, title, text) {
+    return D.h('div', { class: 'cabinet-step' },
+      D.h('span', { class: 'cabinet-step-number', text: number }),
+      D.h('div', null,
+        D.h('h3', { text: title }),
+        D.h('p', { text: text })));
+  }
+
+  function finishCabinetBriefing() {
+    const h = cabinetHandle;
+    cabinetHandle = null;
+    if (h) h.close();
+    B.render();
+    YM.hud.pulsePromises();
+    D.announce('The control room is ready. Start with your desk.');
+  }
+
+  function openCabinetBriefing() {
+    if (cabinetHandle) return;
+    if (!E.onboarding().seen.cabinet_briefing) E.markCoach('cabinet_briefing');
+
+    const body = D.h('div', { class: 'cabinet-briefing' },
+      D.h('p', { class: 'cabinet-opening serif', text: 'Every quarter follows the same loop. You are not meant to solve everything.' }),
+      D.h('div', { class: 'cabinet-loop' },
+        cabinetStep('1', 'Read your desk', 'Problems and opportunities arrive here. Decide what actually deserves the Prime Minister’s attention.'),
+        cabinetStep('2', 'Spend your Attention', 'You have three each quarter. Bigger decisions cost more, so choosing one thing often means leaving another alone.'),
+        cabinetStep('3', 'Advance the quarter', 'Britain moves. Your decisions land, delayed reforms mature and anything you ignored can get worse.')),
+      D.h('div', { class: 'cabinet-goal' },
+        D.h('p', { class: 'eyebrow', text: 'YOUR JOB' }),
+        D.h('p', { text: 'Keep Britain moving, keep your government together, deliver enough of your promises, and win the election.' })),
+      D.h('p', { class: 'muted small cabinet-note', text: 'You can click the map, dials and promises whenever you want more detail. The desk is where you act.' }),
+      D.h('button', { class: 'btn big block', type: 'button', onClick: finishCabinetBriefing }, 'Enter the control room'));
+
+    cabinetHandle = B.open({
+      title: 'Your first Cabinet briefing',
+      eyebrow: 'HOW TO GOVERN',
+      locked: true,
+      className: 'cabinet-overlay',
+      body: body
+    });
+  }
+
   /* Runs once, when the scene is first entered with the tutorial's single
      card still waiting. The first-day briefing deliberately pauses this
      auto-open until the player presses "Open your first red box". */
@@ -124,12 +178,20 @@ YM.onboarding = (function () {
   let queue = [];
 
   function dismissCoach() {
-    if (activeCoach) document.removeEventListener('keydown', activeCoach.onKey, true);
+    if (activeCoach) {
+      document.removeEventListener('keydown', activeCoach.onKey, true);
+      if (activeCoach.target && activeCoach.target.classList) activeCoach.target.classList.remove('coach-target');
+    }
     activeCoach = null;
     const el = D.$('coach');
     if (!el) return;
     D.clear(el);
     el.hidden = true;
+  }
+
+  function clearCoachQueue() {
+    queue = [];
+    dismissCoach();
   }
 
   function advance() {
@@ -138,7 +200,7 @@ YM.onboarding = (function () {
       const item = queue.shift();
       if (E.onboarding().seen[item.key]) continue;
       const target = typeof item.target === 'function' ? item.target() : item.target;
-      if (!target) continue;
+      if (!target || !document.body.contains(target)) continue;
       display(item.key, target, item.text);
       return;
     }
@@ -146,6 +208,7 @@ YM.onboarding = (function () {
 
   function display(key, targetEl, text) {
     E.markCoach(key);
+    if (targetEl.classList) targetEl.classList.add('coach-target');
     const el = D.$('coach');
     const bubble = D.h('div', { class: 'coach-bubble', role: 'status' },
       D.h('p', { class: 'coach-text', text: text }),
@@ -163,6 +226,13 @@ YM.onboarding = (function () {
     if (activeCoach && activeCoach.target && !document.body.contains(activeCoach.target)) advance();
   });
   detachWatcher.observe(document.body, { childList: true, subtree: true });
+
+  /* When a decision or other modal opens, any desk coach has already done its
+     job. Clear it so the next coach can describe the state after the decision
+     rather than being stuck behind an overlay. */
+  B.on('overlay', function (count) {
+    if (count > 0 && activeCoach) clearCoachQueue();
+  });
 
   function position(bubble, targetEl) {
     const rect = targetEl.getBoundingClientRect();
@@ -219,9 +289,7 @@ YM.onboarding = (function () {
     E.lockPromises(pickerSelected.slice());
     const h = pickerHandle; pickerHandle = null;
     if (h) h.close();
-    B.render();
-    YM.hud.pulsePromises();
-    B.flash('Your promises are on the map');
+    openCabinetBriefing();
   }
 
   function renderPicker() {
@@ -247,5 +315,6 @@ YM.onboarding = (function () {
     renderPicker();
   }
 
-  return { title: title, enterDesk: enterDesk, coach: coach, openPromisePicker: openPromisePicker };
+  return { title: title, enterDesk: enterDesk, coach: coach, openPromisePicker: openPromisePicker,
+           openCabinetBriefing: openCabinetBriefing, clearCoach: clearCoachQueue };
 })();
