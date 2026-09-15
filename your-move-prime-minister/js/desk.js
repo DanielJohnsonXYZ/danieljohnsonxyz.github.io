@@ -4,7 +4,7 @@
 window.YM = window.YM || {};
 YM.desk = (function () {
   'use strict';
-  const E = window.Engine, D = YM.dom, B = YM.bus;
+  const E = window.Engine, D = YM.dom, B = YM.bus, F = YM.fmt;
 
   const ACTIONS_TOTAL = 3;
   let root = null;
@@ -60,7 +60,8 @@ YM.desk = (function () {
           card.promise ? D.h('span', { class: 'chip gold', text: 'Your promise' }) : null),
         D.h('span', { class: 'desk-card-cost', 'aria-label': 'Costs ' + card.cost + ' attention' },
           D.h('span', { class: 'desk-card-cost-num', text: String(card.cost) }),
-          D.h('span', { class: 'desk-card-cost-label', text: 'attention' }))));
+          D.h('span', { class: 'desk-card-cost-label', text: 'attention' }),
+          D.h('span', { class: 'desk-card-open', text: 'Decide →' }))));
   }
 
   function leftBehindBlock(agenda, stage) {
@@ -72,13 +73,70 @@ YM.desk = (function () {
       if (!card) return null;
       return D.h('li', null,
         D.h('b', { text: card.title }),
-        D.h('span', { text: entry.urgent ? ' — urgent' : '' }));
+        D.h('span', { text: entry.urgent ? ' · urgent' : '' }));
     }).filter(Boolean);
     if (!list.length) return null;
     return D.h('div', { class: 'score-block desk-left-behind' },
       D.h('p', { class: 'eyebrow', text: 'UNRESOLVED ISSUES' }),
       D.h('p', { class: 'small', text: 'These will worsen if you advance:' }),
       D.h('ul', { class: 'matured-list' }, list));
+  }
+
+  function biggestPressure() {
+    return F.DIAL_KEYS.map(function (key) { return E.readout(key); })
+      .sort(function (a, b) { return a.value - b.value; })[0] || null;
+  }
+
+  function promiseSummary() {
+    if (!E.promiseStatus) return null;
+    const list = E.promiseStatus() || [];
+    if (!list.length) return null;
+    const good = list.filter(function (p) { return p.status === 'On track' || p.status === 'Delivered'; }).length;
+    return good + ' of ' + list.length + ' promises on track';
+  }
+
+  function guideBlock(s, stage, agenda) {
+    if (stage === 'first_card' || stage === 'promises') return null;
+    const open = agenda.filter(function (a) { return !a.done; });
+    const urgent = open.find(function (a) { return a.urgent && (a.cost || 1) <= s.actionsLeft; });
+    let title = '';
+    let text = '';
+
+    if (stage === 'first_run') {
+      title = 'You are ready to govern';
+      text = 'Advance once. Your first full set of issues will arrive on the desk next.';
+    } else if (s.bill) {
+      title = 'Parliament is waiting';
+      text = 'Finish the Commons vote before you try to move the quarter on.';
+    } else if (s.actionsLeft <= 0) {
+      title = 'You are done for this quarter';
+      text = 'You have used all 3 Attention. Advance and watch what changes across Britain.';
+    } else if (urgent) {
+      const urgentCard = E.agendaCard(urgent);
+      title = 'Start with: ' + (urgentCard ? urgentCard.title : 'the urgent issue');
+      text = 'This is urgent. Open it, make a decision, then come back and choose what deserves the rest of your Attention.';
+    } else if (open.length && s.actionsLeft === ACTIONS_TOTAL) {
+      title = 'Choose what matters this quarter';
+      text = 'Pick one issue from your desk. You have 3 Attention, and you are not expected to solve everything.';
+    } else if (open.length) {
+      title = s.actionsLeft + ' Attention left';
+      text = 'Tackle another issue, or advance to the next quarter. Anything left unresolved may get worse.';
+    } else {
+      title = 'Your desk is clear';
+      text = 'Advance to the next quarter and see how Britain responds.';
+    }
+
+    const meta = [D.h('span', { class: 'desk-guide-chip', text: F.countdown(s.turn) })];
+    const promises = promiseSummary();
+    if (promises) meta.push(D.h('span', { class: 'desk-guide-chip', text: promises }));
+    const pressure = biggestPressure();
+    if (pressure) meta.push(D.h('span', { class: 'desk-guide-chip', text: 'Biggest pressure: ' + pressure.name + ' (' + pressure.status + ')' }));
+
+    return D.h('div', { class: 'desk-guide', role: 'status' },
+      D.h('p', { class: 'eyebrow', text: 'YOUR NEXT MOVE' }),
+      D.h('p', { class: 'desk-guide-title', text: title }),
+      D.h('p', { class: 'desk-guide-text', text: text }),
+      D.h('div', { class: 'desk-guide-meta' }, meta));
   }
 
   function maybeFirstFullQuarterCoach(s, stage, undone) {
@@ -91,7 +149,7 @@ YM.desk = (function () {
       const first = root.querySelector('.desk-card:not(.done) .desk-card-btn');
       if (first) {
         YM.onboarding.coach('first_real_desk', first,
-          'Start here. Your desk is where you govern. Open an issue, make a choice, then come back and decide what deserves the rest of your attention.');
+          'Start here. Open one issue and make a choice. You do not need to clear the whole desk.');
       }
       return;
     }
@@ -99,10 +157,10 @@ YM.desk = (function () {
     if (s.actionsLeft < ACTIONS_TOTAL) {
       const left = s.actionsLeft;
       YM.onboarding.coach('first_attention_after_choice', root.querySelector('.desk-attention'),
-        'You have ' + left + ' Attention left this quarter. You do not need to clear the whole desk.');
+        'You have ' + left + ' Attention left. You can tackle something else, or move time on.');
       YM.onboarding.coach('first_advance_after_choice', runBtn,
-        undone ? 'When you are ready, advance the quarter. The ' + undone + ' unresolved issue' + (undone === 1 ? '' : 's') + ' will worsen.'
-               : 'When you are ready, advance the quarter and watch Britain respond.');
+        undone ? 'Advance when you are ready. ' + undone + ' unresolved issue' + (undone === 1 ? '' : 's') + ' may get worse.'
+               : 'Advance when you are ready and watch Britain respond.');
     }
   }
 
@@ -133,7 +191,7 @@ YM.desk = (function () {
       : stage === 'first_card' ? 'Required before the government can move on.'
       : stage === 'promises' ? 'Choose your promises first.'
       : stage === 'first_run' ? 'This starts your first full quarter of government.'
-      : (undone ? undone + ' unresolved issue' + (undone === 1 ? '' : 's') + ' will worsen if you advance.' : 'Everything on your desk has an answer.');
+      : (undone ? undone + ' unresolved issue' + (undone === 1 ? '' : 's') + ' may get worse if you advance.' : 'Everything on your desk has an answer.');
 
     const handle = D.h('button', {
       class: 'desk-handle', type: 'button', 'aria-expanded': String(expanded),
@@ -148,9 +206,13 @@ YM.desk = (function () {
       D.h('span', { text: 'Attention' }),
       coinRow(ACTIONS_TOTAL - s.actionsLeft, ACTIONS_TOTAL, s.actionsLeft + ' of ' + ACTIONS_TOTAL + ' attention left'));
 
+    const focusMode = stage === 'first_run' || (stage === 'done' && E.history().length === 1 && s.actionsLeft === ACTIONS_TOTAL);
+    document.body.classList.toggle('beginner-focus', focusMode);
+
     D.replace(root,
       handle,
       D.h('div', { class: 'panel-head' }, heading, attention),
+      guideBlock(s, stage, agenda),
       D.h('div', { class: 'desk-scroll' },
         items.length ? list : D.h('p', { class: 'muted', text: 'Nothing on the desk. Advance the quarter to see what comes next.' })),
       D.h('div', { class: 'desk-run' }, leftBehindBlock(agenda, stage), runBtn, D.h('p', { class: 'muted small', text: hint })));
@@ -166,7 +228,7 @@ YM.desk = (function () {
         'Open this to choose your promises');
     } else if (stage === 'first_run') {
       YM.onboarding.coach('run_btn', runBtn,
-        'Advance the quarter to begin your first full round of government.');
+        'Advance once to begin your first full round of government.');
     }
 
     maybeFirstFullQuarterCoach(s, stage, undone);
