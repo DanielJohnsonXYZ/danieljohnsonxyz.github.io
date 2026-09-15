@@ -1,5 +1,5 @@
-/* The six dials beneath the map: compact instruments that put the number,
-   direction and human readout in that order, so the strip scans quickly. */
+/* The national indicators. Keep the first view simple: show the three areas
+   under most pressure, then let curious players expand to all six. */
 
 window.YM = window.YM || {};
 YM.dials = (function () {
@@ -7,6 +7,7 @@ YM.dials = (function () {
   const E = window.Engine, D = YM.dom, B = YM.bus, F = YM.fmt;
 
   let root = null;
+  let expanded = false;
   const tileEls = {}, headlineEls = {}, numberEls = {}, statusEls = {}, fillEls = {}, trendEls = {}, barEls = {};
 
   function mount() {
@@ -53,7 +54,7 @@ YM.dials = (function () {
     return svg;
   }
 
-  function tile(key) {
+  function tile(key, secondary) {
     const r = E.readout(key);
     const delta = trendFor(key);
     const fill = D.h('span', { class: 'dial-bar-fill', style: { width: r.value + '%', background: F.fillFor(r.status) } });
@@ -72,7 +73,8 @@ YM.dials = (function () {
     }, fill);
 
     const btn = D.h('button', {
-      class: 'dial', type: 'button', 'data-key': key, 'data-value': String(r.value),
+      class: 'dial' + (secondary ? ' dial-secondary' : ''), type: 'button',
+      'data-key': key, 'data-value': String(r.value),
       'aria-label': r.name + ': ' + r.value + ' out of 100, ' + r.status + '. ' + r.headline + '. ' + F.trendWord(delta) + (delta ? ' by ' + Math.abs(delta) : '') + '.',
       onClick: function () { openDial(key); }
     },
@@ -97,13 +99,36 @@ YM.dials = (function () {
     return btn;
   }
 
+  function sortedKeys() {
+    return F.DIAL_KEYS.slice().sort(function (a, b) {
+      return E.readout(a).value - E.readout(b).value;
+    });
+  }
+
+  function toggleExpanded() {
+    expanded = !expanded;
+    render();
+  }
+
   function render() {
     if (!root) return;
-    const grid = D.h('div', { class: 'dial-grid', role: 'group', 'aria-label': 'How the country is doing: six indicators' });
-    F.DIAL_KEYS.forEach(function (key) { grid.appendChild(tile(key)); });
+    const keys = sortedKeys();
+    const grid = D.h('div', { class: 'dial-grid', role: 'group', 'aria-label': 'How Britain is doing' });
+    keys.forEach(function (key, i) { grid.appendChild(tile(key, i >= 3)); });
+
+    const toggle = D.h('button', {
+      class: 'btn ghost dials-toggle', type: 'button', 'aria-expanded': String(expanded),
+      onClick: toggleExpanded
+    }, expanded ? 'Show biggest 3' : 'See all 6');
+
     D.replace(root,
-      D.h('div', { class: 'panel-head' }, D.h('h2', { text: 'How the country is doing' })),
+      D.h('div', { class: 'panel-head dial-panel-head' },
+        D.h('div', { class: 'dial-panel-copy' },
+          D.h('h2', { text: 'Britain at a glance' }),
+          D.h('p', { class: 'muted small', text: expanded ? 'All six national indicators.' : 'The three areas under most pressure, worst first.' })),
+        toggle),
       grid);
+    root.classList.toggle('dials-expanded', expanded);
   }
 
   function setDial(key, value) {

@@ -1,0 +1,175 @@
+/* General-public UX pass.
+   The goal is not to make the simulation shallower. It is to make the next
+   action obvious, keep secondary information quiet, and let detail expand on
+   demand. */
+
+/* ---------------------------------------------------------- next move */
+.desk-guide {
+  margin: 0 0 12px;
+  padding: 12px 13px 11px;
+  border: 1px solid rgba(215,173,83,.34);
+  border-left: 4px solid var(--gold);
+  border-radius: 9px;
+  background: linear-gradient(135deg, rgba(215,173,83,.12), rgba(255,255,255,.025));
+}
+
+.desk-guide .eyebrow {
+  margin-bottom: 3px;
+  font-size: 10px;
+}
+
+.desk-guide-title {
+  margin: 0 0 3px;
+  color: var(--pale);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.desk-guide-text {
+  margin: 0;
+  color: var(--pale-muted);
+  font-size: 13px;
+  line-height: 1.42;
+}
+
+.desk-guide-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.desk-guide-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 4px 8px;
+  border: 1px solid rgba(168,189,214,.2);
+  border-radius: 999px;
+  background: rgba(4,13,26,.28);
+  color: var(--pale-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* ---------------------------------------------------- obvious desk action */
+.desk-card-open {
+  margin-top: 6px;
+  color: var(--gold-deep);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+
+.desk-card-btn:hover .desk-card-open,
+.desk-card-btn:focus-visible .desk-card-open {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ----------------------------------------------- progressive disclosure */
+#dials:not(.dials-expanded) .dial-secondary {
+  display: none;
+}
+
+.dial-panel-head {
+  align-items: flex-start;
+}
+
+.dial-panel-copy {
+  min-width: 0;
+}
+
+.dial-panel-copy h2 {
+  margin-bottom: 2px;
+}
+
+.dial-panel-copy p {
+  margin: 0;
+}
+
+.dials-toggle {
+  flex: 0 0 auto;
+  margin-top: -5px;
+  font-size: 12px;
+}
+
+/* During the first real turn, keep the country visible but quieter. The desk
+   is the place to act. As soon as the player makes a decision, the rest of the
+   control room returns to full strength. */
+body.beginner-focus #map,
+body.beginner-focus #dials {
+  opacity: .66;
+  filter: saturate(.72);
+  transform: scale(.992);
+  transform-origin: top center;
+  transition: opacity .22s ease, filter .22s ease, transform .22s ease;
+}
+
+body.beginner-focus #desk {
+  box-shadow: 0 0 0 2px rgba(215,173,83,.34), 0 16px 38px rgba(0,0,0,.24);
+}
+
+/* ---------------------------------------------------------- friendlier HUD */
+.hud-stat-label-full {
+  letter-spacing: .07em;
+}
+
+/* The first row is the answer to "how am I doing?", not a wall of controls. */
+.hud-promises {
+  row-gap: 5px;
+}
+
+/* -------------------------------------------------------------- mobile */
+@media (max-width: 899px) {
+  .desk-guide {
+    margin: 0 0 9px;
+    padding: 10px 11px;
+  }
+
+  .desk-guide-title {
+    font-size: 16px;
+  }
+
+  .desk-guide-text {
+    font-size: 12.5px;
+  }
+
+  .desk-guide-meta {
+    gap: 5px;
+    margin-top: 7px;
+  }
+
+  .desk-guide-chip {
+    font-size: 10px;
+  }
+
+  body.beginner-focus #map,
+  body.beginner-focus #dials {
+    opacity: .82;
+    transform: none;
+  }
+
+  .dials-toggle {
+    margin-top: -3px;
+  }
+}
+
+@media (max-width: 560px) {
+  .desk-guide-meta .desk-guide-chip:nth-child(3) {
+    display: none;
+  }
+
+  .dial-panel-head {
+    gap: 6px;
+  }
+
+  .dials-toggle {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}
