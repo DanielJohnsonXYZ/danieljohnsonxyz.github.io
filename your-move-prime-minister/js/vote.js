@@ -43,7 +43,7 @@ YM.vote = (function () {
       D.h('h3', { text: 'Before the vote' }),
       D.h('div', { class: 'choices compact' },
         negotiateBtn(vs, 'concede', 'Make concessions', 'Fewer rebels, but a weaker bill', !vs.canConcede),
-        negotiateBtn(vs, 'talk', 'Talk to the rebels', talkBlockedByActions ? 'No attention left' : 'Costs an action. Result uncertain', !vs.canTalk || talkBlockedByActions),
+        negotiateBtn(vs, 'talk', 'Talk to the rebels', talkBlockedByActions ? 'No Attention left' : 'Costs 1 Attention. Result uncertain', !vs.canTalk || talkBlockedByActions),
         negotiateBtn(vs, 'threaten', 'Threaten the whip', 'It might work. It might backfire badly', !vs.canThreaten)),
       D.h('div', { class: 'vote-actions' },
         D.h('button', { class: 'btn big block', type: 'button', onClick: hold }, 'Hold the vote'),
@@ -72,7 +72,7 @@ YM.vote = (function () {
 
   function negotiate(kind) {
     const r = E.negotiate(kind);
-    if (r && r.blocked === 'actions') { B.flash('No attention left this quarter'); return; }
+    if (r && r.blocked === 'actions') { B.flash('No Attention left this quarter'); return; }
     refresh(r && r.note);
     B.render();
   }
@@ -85,8 +85,8 @@ YM.vote = (function () {
       B.setPhase('desk');
       YM.desk.setEnabled(true);
       B.render();
+      window.setTimeout(function () { YM.card.pulseChanges(result.changes, voteRegion); }, 20);
     }));
-    YM.card.pulseChanges(result.changes, voteRegion);
     B.render();
   }
 
