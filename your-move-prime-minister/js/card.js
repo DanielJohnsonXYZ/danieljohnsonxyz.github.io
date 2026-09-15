@@ -85,8 +85,7 @@ YM.card = (function () {
 
     return [
       D.h('p', { class: 'card-lede', text: card.text }),
-      D.h('div', { class: 'adviser-quick' },
-        adviserBlock(card.adviser, false)),
+      D.h('div', { class: 'adviser-quick' }, adviserBlock(card.adviser, false)),
       D.h('h3', { class: 'decision-question', text: 'What do you do?' }),
       choices,
       explainBtn, explainBody
@@ -155,8 +154,17 @@ YM.card = (function () {
   function pulseChanges(changes, region) {
     if (region) YM.map.pulse(region);
     (changes || []).forEach(function (c) {
-      const key = NAME_TO_DIAL[c.name];
-      if (key) YM.dials.pulse(key, c.delta > 0 ? 'up' : (c.delta < 0 ? 'down' : null));
+      const dir = c.delta > 0 ? 'up' : (c.delta < 0 ? 'down' : null);
+      if (c.key === 'approval' || c.key === 'headroom' || c.key === 'party' || c.key === 'confidence') {
+        YM.hud.pulse(c.key, dir);
+        return;
+      }
+      if (c.key && c.key.slice(0, 7) === 'region:') {
+        YM.map.pulse(c.key.slice(7), dir);
+        return;
+      }
+      const key = (c.key && F.DIAL_KEYS.indexOf(c.key) >= 0) ? c.key : NAME_TO_DIAL[c.name];
+      if (key) YM.dials.pulse(key, dir);
     });
   }
 
