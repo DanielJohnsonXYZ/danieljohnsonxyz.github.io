@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#061326" />
+  <title>Your Move, Prime Minister</title>
+  <meta name="description" content="Run the country for five years. Set your priorities, answer the crises that land on your desk, and live with the consequences. A playable simulation of British government." />
+  <link rel="canonical" href="https://danieljohnsonxyz.github.io/your-move-prime-minister/classic/" />
+  <meta name="robots" content="noindex" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Your Move, Prime Minister" />
+  <meta property="og:title" content="Your Move, Prime Minister" />
+  <meta property="og:description" content="Run the country for five years. Think you could do better?" />
+  <meta property="og:url" content="https://danieljohnsonxyz.github.io/your-move-prime-minister/classic/" />
+  <meta property="og:image" content="https://danieljohnsonxyz.github.io/your-move-prime-minister/share.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Your Move, Prime Minister" />
+  <meta name="twitter:description" content="Run the country for five years. Think you could do better?" />
+  <meta name="twitter:image" content="https://danieljohnsonxyz.github.io/your-move-prime-minister/share.png" />
+
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="topbar" id="topbar">
+    <button class="wordmark" id="homeBtn" type="button">
+      <span class="crest" aria-hidden="true">♛</span>
+      <span class="wordmark-text">Your Move, Prime Minister</span>
+    </button>
+
+    <!-- Three numbers, not seventeen. Hidden until the term starts. -->
+    <dl class="stats" id="stats" hidden>
+      <div class="stat"><dt>Approval</dt><dd id="statApproval">52%</dd></div>
+      <div class="stat"><dt>Money</dt><dd id="statMoney">£24bn</dd></div>
+      <div class="stat"><dt>Your party</dt><dd id="statParty">73%</dd></div>
+    </dl>
+  </header>
+
+  <!-- Navigation arrives a piece at a time, as each system becomes relevant. -->
+  <nav class="tabs" id="tabs" aria-label="Sections" hidden>
+    <button type="button" class="tab" data-view="briefing" aria-current="page">Agenda</button>
+    <button type="button" class="tab" data-view="britain" hidden>Britain</button>
+    <button type="button" class="tab" data-view="government" hidden>Government</button>
+  </nav>
+
+  <main id="main" class="main">
+    <section id="view-title"        class="view" tabindex="-1"></section>
+    <section id="view-manifesto"    class="view" tabindex="-1" hidden></section>
+    <section id="view-briefing"     class="view" tabindex="-1" hidden></section>
+    <section id="view-decision"     class="view" tabindex="-1" hidden></section>
+    <section id="view-vote"         class="view" tabindex="-1" hidden></section>
+    <section id="view-consequences" class="view" tabindex="-1" hidden></section>
+    <section id="view-britain"      class="view" tabindex="-1" hidden></section>
+    <section id="view-government"   class="view" tabindex="-1" hidden></section>
+    <section id="view-end"          class="view" tabindex="-1" hidden></section>
+  </main>
+
+  <!-- Announcements for things that change without being clicked. -->
+  <p class="visually-hidden" id="liveStatus" role="status" aria-live="polite"></p>
+
+  <div class="dialog-layer" id="dialogLayer" hidden></div>
+
+  <noscript>
+    <div class="noscript">
+      <h1>Your Move, Prime Minister</h1>
+      <p>This game runs in your browser and needs JavaScript switched on. Nothing is uploaded anywhere — it all runs on your device, and your saved game stays in this browser.</p>
+    </div>
+  </noscript>
+
+  <script src="js/content.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>

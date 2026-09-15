@@ -19,8 +19,8 @@ window.Engine = (function () {
 
   const TURNS = 20;               // a five-year term, one turn per quarter
   const ACTIONS_PER_TURN = 3;
-  const SAVE_KEY = 'ympm.save.v3';
-  const SAVE_VERSION = 3;
+  const SAVE_KEY = 'ympm.save.v2';
+  const SAVE_VERSION = 2;
   const COMMONS_SEATS = 650;
   const MAJORITY_THRESHOLD = 326; // seats needed to win a Commons vote
 
@@ -66,9 +66,7 @@ window.Engine = (function () {
       lastReport: null,
       bill: null,                 // in-flight Commons vote
       generated: {},              // investment decisions minted this term
-      invested: {},               // topic -> how many times funded, for diminishing returns
-      history: [],                // one point per quarter, for sparklines and the election
-      onboarding: { stage: 'done', seen: {} }  // first-term guidance; 'done' once shown
+      invested: {}                // topic -> how many times funded, for diminishing returns
     };
   }
 
@@ -107,7 +105,7 @@ window.Engine = (function () {
       detail: 'People on an NHS waiting list'
     }),
     housing: v => ({
-      headline: round(150 + v * 1.8).toLocaleString() + 'k homes a year',
+      headline: round(120 + (100 - v) * 1.6).toLocaleString() + 'k homes a year',
       detail: 'New homes being built annually'
     }),
     economy: v => ({
@@ -135,15 +133,6 @@ window.Engine = (function () {
     if (v >= 42) return 'Strained';
     if (v >= 28) return 'Poor';
     return 'Critical';
-  }
-
-  /* The same sentence for any value, so "where you started" and "where you
-     are" on election night come out of one function. */
-  function readoutValue(key, value) {
-    const v = clamp(value);
-    const r = (READOUTS[key] || (x => ({ headline: label(x), detail: '' })))(v);
-    return { key: key, name: INDICATOR_NAMES[key] || key, value: round(v), status: label(v),
-             headline: r.headline, detail: r.detail };
   }
 
   function readout(key) {
@@ -248,31 +237,6 @@ window.Engine = (function () {
   }
 
   function regions() { return Object.keys(state.regions).map(regionDetail); }
-
-  /* Where on the map a decision lands. Events about a place are pinned to it;
-     everything else goes to the region that cares most about the topic, and
-     Westminster business goes to London. */
-  const EVENT_REGION = {
-    nhs_strike: 'North', planning: 'South', tax_gap: 'London', rates: 'London', prisons: 'Midlands',
-    energy: 'Scotland', minister_scandal: 'London', rail: 'North', migration: 'South', schools: 'Midlands',
-    defence: 'Scotland', local_elections: 'Midlands', flood: 'Wales', ai_jobs: 'London', lords: 'London',
-    by_election: 'Midlands', growth_budget: 'London', pmqs: 'London', data_breach: 'London',
-    final_budget: 'London', eastern_europe_crisis: 'Scotland', shipping_shock: 'South',
-    leadership_rumours: 'London', winter_crisis: 'Wales', rent_protests: 'London', strike_wave: 'North',
-    opposition_lead: 'Midlands', inflation_spike: 'Midlands', crime_wave: 'South', blackout_warning: 'Scotland',
-    pre_election_giveaway: 'South', manifesto_reckoning: 'London', honours_row: 'London', trade_talks: 'South',
-    nurses_dispute: 'Wales'
-  };
-
-  function regionFor(eventId, topic) {
-    if (eventId && EVENT_REGION[eventId]) return EVENT_REGION[eventId];
-    let best = null, bestW = 0;
-    Object.keys(REGION_CHARACTER).forEach(function (r) {
-      const w = REGION_CHARACTER[r].drivers[topic] || 0;
-      if (w > bestW) { bestW = w; best = r; }
-    });
-    return best || 'London';
-  }
 
   /* Indicators the player sees on the Britain view, worst first so the thing
      that needs attention is at the top. */
@@ -568,7 +532,6 @@ window.Engine = (function () {
     return {
       id: ev.id, icon: ev.icon, category: ev.category, title: ev.title, text: ev.text,
       urgent: entry.urgent, cost: entry.cost, topic: m.topic,
-      region: ev.final ? null : regionFor(ev.id, m.topic),
       promise: m.promise && state.promises.includes(m.promise) ? m.promise : null,
       adviser: { name: ev.adviser, avatar: ev.avatar, text: ev.adviserText },
       secondOpinion: secondOpinion(m),
@@ -654,22 +617,11 @@ window.Engine = (function () {
       state.flags.taxRaised = true;
     }
 
-    /* The record entry carries enough to replay the decision on election night:
-       what moved now, what it promised for later, and (filled in when the
-       delayed effect matures) what actually arrived. */
-    const recordIndex = state.record.length;
-    state.record.push({
-      turn: state.turn, title: ev.title, choice: choice.t, headline: headline,
-      eventId: ev.id, topic: meta.topic || null, region: ev.final ? null : regionFor(ev.id, meta.topic),
-      changes: changes, delayText: choice.delay ? choice.delay.text : null,
-      expectedDelay: choice.delay ? choice.delay.e : null, matured: null
-    });
-
     if (choice.delay) {
       state.pending.push({
         dueTurn: state.turn + Math.max(1, Math.round(choice.delay.after / 3)),
         text: choice.delay.text, effects: choice.delay.e, topic: meta.topic,
-        cause: ev.title, causeChoice: choice.t, recordIndex: recordIndex
+        cause: ev.title, causeChoice: choice.t
       });
     }
 
@@ -684,6 +636,7 @@ window.Engine = (function () {
     }
     state.resolved.push(ev.id);
     delete state.ignored[ev.id];
+    state.record.push({ turn: state.turn, title: ev.title, choice: choice.t, headline: headline });
     state.news.unshift({ turn: state.turn, headline: headline, deck: deck });
     state.news = state.news.slice(0, 24);
 
@@ -827,33 +780,7 @@ window.Engine = (function () {
      silently — drift, matured consequences, the cost of ignoring things — is
      returned here so the player can be shown what their decisions did. */
   function endTurn() {
-    const report = { turn: state.turn, immediate: [], matured: [], neglected: [], headline: null, chains: [],
-                     timeline: [], coming: null };
-
-    /* The timeline is the quarter told in order: after each block below, the
-       numbers that moved since the last entry are recorded with the reason.
-       The UI plays these back one at a time so the player watches the
-       quarter happen rather than reading a summary of it. */
-    const TL_NAMES = { approval: 'Approval', headroom: 'Fiscal headroom', party: 'Your party', confidence: 'Market confidence' };
-    function tlSnapshot() {
-      const s = { approval: state.approval, headroom: state.headroom, party: state.party, confidence: state.confidence };
-      Object.keys(state.indicators).forEach(k => { s[k] = state.indicators[k]; });
-      Object.keys(state.regions).forEach(r => { s['region:' + r] = state.regions[r]; });
-      return s;
-    }
-    let tlLast = tlSnapshot();
-    function emit(kind, extra, always) {
-      const now = tlSnapshot();
-      const changes = [];
-      Object.keys(now).forEach(k => {
-        if (round(tlLast[k]) === round(now[k])) return;
-        const name = TL_NAMES[k] || INDICATOR_NAMES[k] || (k.slice(0, 7) === 'region:' ? k.slice(7) : k);
-        changes.push({ key: k, name: name, from: round(tlLast[k]), to: round(now[k]), delta: round(now[k]) - round(tlLast[k]) });
-      });
-      tlLast = now;
-      if (!changes.length && !always) return;
-      report.timeline.push(Object.assign({ kind: kind, changes: changes }, extra || {}));
-    }
+    const report = { turn: state.turn, immediate: [], matured: [], neglected: [], headline: null, chains: [] };
 
     /* Parliament rises at the end of the quarter, so any bill still awaiting
        a vote lapses rather than surviving into a turn that no longer has an
@@ -862,7 +789,6 @@ window.Engine = (function () {
       const billName = state.bill.name;
       abandonBill();
       report.abandonedBill = billName;
-      emit('bill_lapsed', { name: billName }, true);
     }
 
     const before = snapshot();
@@ -873,10 +799,6 @@ window.Engine = (function () {
     due.forEach(p => {
       const changes = applyEffects(p.effects, p.topic, 1);
       report.matured.push({ text: p.text, cause: p.cause, causeChoice: p.causeChoice, changes: changes });
-      if (p.recordIndex !== undefined && state.record[p.recordIndex]) state.record[p.recordIndex].matured = changes;
-      emit('matured', { text: p.text, cause: p.cause, causeChoice: p.causeChoice, topic: p.topic || null,
-                        region: state.record[p.recordIndex] ? state.record[p.recordIndex].region : regionFor(null, p.topic),
-                        recordIndex: p.recordIndex }, true);
       report.chains.push({
         steps: [p.causeChoice, p.text],
         explain: 'You chose this ' + Math.max(1, state.turn - (p.dueTurn - 1)) +
@@ -908,7 +830,6 @@ window.Engine = (function () {
           text: 'Left unattended. ' + (INDICATOR_NAMES[m.topic] || m.topic) + ' has worsened.',
           change: { name: INDICATOR_NAMES[m.topic] || m.topic, from: round(b), to: round(state.indicators[m.topic]), delta: round(state.indicators[m.topic]) - round(b) }
         });
-        emit('neglect', { title: ev ? ev.title : a.eventId, topic: m.topic, region: regionFor(a.eventId, m.topic) }, true);
       } else if (m.topic === 'party') {
         /* A political problem left alone does not damage a public service —
            it damages your own side. */
@@ -919,7 +840,6 @@ window.Engine = (function () {
           text: 'Left unattended. Your party has worsened.',
           change: { name: 'Your party', from: round(b), to: round(state.party), delta: round(state.party) - round(b) }
         });
-        emit('neglect', { title: ev ? ev.title : a.eventId, topic: 'party', region: regionFor(a.eventId, 'party') }, true);
       } else if (m.topic === 'treasury') {
         /* A fiscal problem left alone does not damage a public service either
            — it costs money, at a bigger multiple since the sums are bigger. */
@@ -930,7 +850,6 @@ window.Engine = (function () {
           text: 'Left unattended. Fiscal headroom has worsened.',
           change: { name: 'Fiscal headroom', from: round(b), to: round(state.headroom), delta: round(state.headroom) - round(b) }
         });
-        emit('neglect', { title: ev ? ev.title : a.eventId, topic: 'treasury', region: regionFor(a.eventId, 'treasury') }, true);
       }
     });
 
@@ -946,7 +865,6 @@ window.Engine = (function () {
     ind.energy = clamp(ind.energy - 0.2);
     ind.transport = clamp(ind.transport - 0.3);
     ind.economy = clamp(ind.economy + (55 - ind.economy) * 0.04);
-    emit('drift');
 
     /* 4. Approval is pulled toward what the fundamentals justify rather than
           accumulating quarter on quarter. A good week fades unless the country
@@ -956,7 +874,6 @@ window.Engine = (function () {
     const fundamentals = 28 + ind.economy * 0.14 + ind.health * 0.1 + ind.housing * 0.08 + ind.services * 0.08;
     const noise = (rand() - 0.5) * 4;
     state.approval = clamp(state.approval + (fundamentals - state.approval) * 0.28 + noise);
-    emit('approval', { fundamentals: round(fundamentals) });
 
     /* 5. Fiscal position and the party. Growth is what pays for public services:
           a stronger economy widens the tax base, a weak one leaves a structural
@@ -966,7 +883,6 @@ window.Engine = (function () {
     const partyTarget = 45 + (state.approval - 45) * 0.6 + (state.headroom > 0 ? 4 : -6);
     state.party = clamp(state.party + (partyTarget - state.party) * 0.25);
     state.majority = Math.max(0, round(24 + (state.party - 73) * 0.35 + (state.approval - 52) * 0.2));
-    emit('fiscal', { growth: round1((ind.economy - 55) * 0.45 - 1.0) });
 
     /* 5b. Debt interest: borrowing is not free. A quarter spent below zero
            costs real money the next quarter, deducted before anything else
@@ -975,12 +891,10 @@ window.Engine = (function () {
       state.borrowingCost = round1(Math.max(0, -state.headroom) * 0.04);
       state.headroom = clamp(state.headroom - state.borrowingCost, -150, 60);
       report.interest = { cost: state.borrowingCost, headroom: round(state.headroom) };
-      emit('interest', { cost: state.borrowingCost }, true);
     } else {
       state.borrowingCost = 0;
       /* A surplus is not dead money: cheap borrowing and a credible Treasury pull in investment. */
       ind.economy = clamp(ind.economy + Math.min(state.headroom, 60) / 60 * 0.25);
-      emit('surplus');
     }
 
     /* 5c. Confidence tracks the fiscal and economic picture and decides
@@ -988,7 +902,6 @@ window.Engine = (function () {
     const confidenceTarget = clamp(70 + state.headroom * 1 + (ind.economy - 55) * 0.4);
     state.confidence = clamp(state.confidence + (confidenceTarget - state.confidence) * 0.3);
     if (state.confidence > 70) state.approval = clamp(state.approval + (state.confidence - 70) * 0.02);
-    emit('confidence', { confidence: round(state.confidence) });
 
     /* 5d. Debt has to cost more than interest, or spending freely is simply
            the right answer every time — which is what the original model
@@ -1006,7 +919,6 @@ window.Engine = (function () {
           headroom: round(state.headroom)
         };
       }
-      emit('strain', { strain: round1(strain), warned: strain > 0.55 });
     }
 
     /* 6. Regions move toward their own mix of national mood and local
@@ -1016,24 +928,14 @@ window.Engine = (function () {
       const target = clamp(state.approval * 0.6 + localCondition(r) * 0.40);
       state.regions[r] = clamp(state.regions[r] + (target - state.regions[r]) * 0.30 + (rand() - 0.5) * 3);
     });
-    emit('regions');
 
     /* 7. What the papers make of it. */
     report.headline = pickHeadline();
     report.immediate = diff(before, snapshot());
     report.promises = promiseStatus();
-    emit('headline', { headline: report.headline }, true);
 
     state.turn += 1;
     state.actionsLeft = ACTIONS_PER_TURN;
-    state.history.push(historyPoint());
-    /* The one thing still in the post: the next delayed consequence to land. */
-    const next = state.pending.slice().sort((a, b) => a.dueTurn - b.dueTurn)[0];
-    if (next) {
-      report.coming = { text: next.text, cause: next.cause, causeChoice: next.causeChoice,
-                        quarters: Math.max(1, next.dueTurn - state.turn + 1),
-                        region: state.record[next.recordIndex] ? state.record[next.recordIndex].region : regionFor(null, next.topic) };
-    }
     unlockFeatures(report);
 
     if (state.turn > TURNS) {
@@ -1101,33 +1003,6 @@ window.Engine = (function () {
      you, and one you dominate returns almost all of them. */
   const REGION_SEATS = { Scotland: 57, North: 158, Midlands: 105, Wales: 32, London: 75, South: 223 };
 
-  /* One compact point per quarter: the sparkline and election-night "then and
-     now" come from these, not from re-simulating anything. */
-  function historyPoint() {
-    const i = {}, r = {};
-    Object.keys(state.indicators).forEach(k => { i[k] = round(clamp(state.indicators[k])); });
-    Object.keys(state.regions).forEach(k => { r[k] = round(clamp(state.regions[k])); });
-    return { t: state.turn, a: round(state.approval), h: round(state.headroom), p: round(state.party),
-             c: round(state.confidence), i: i, r: r };
-  }
-
-  /* The decisions that mattered most, judged by how much they moved — now and,
-     if the delayed part has landed, later. Each comes with its chain so the
-     ending can say "you did X, then Y happened". */
-  function definingDecisions(n) {
-    const sum = list => (list || []).reduce((t, c) => t + Math.abs(c.delta || 0), 0);
-    const sumEffects = e => Object.keys(e || {}).reduce((t, k) => t + Math.abs(e[k]), 0);
-    return state.record.map((r, idx) => {
-      const score = sum(r.changes) + (r.matured ? sum(r.matured) : sumEffects(r.expectedDelay));
-      const chain = [{ text: r.choice, changes: r.changes || [] }];
-      if (r.delayText) chain.push({ text: r.delayText, changes: r.matured || [], pending: !r.matured });
-      return { index: idx, turn: r.turn, title: r.title, choice: r.choice, headline: r.headline,
-               region: r.region || null, topic: r.topic || null, score: round1(score), chain: chain };
-    }).sort((a, b) => b.score - a.score || a.turn - b.turn).slice(0, n || 3);
-  }
-
-  const REGION_ORDER = ['North', 'Scotland', 'Wales', 'Midlands', 'London', 'South'];
-
   function finish() {
     /* Approval is the national headline number, but seats are won region by
        region: each region's own approval maps to a share of its seats, from
@@ -1142,19 +1017,6 @@ window.Engine = (function () {
       seatsByRegion[r] = { seats: regionTotal, won: won, approval: round(clamp(state.regions[r])) };
       seats += won;
     });
-    const first = state.history[0] || historyPoint();
-    const after = historyPoint();
-    REGION_ORDER.forEach(r => {
-      const row = seatsByRegion[r];
-      const d = regionDetail(r);
-      row.held = row.won * 2 > row.seats;
-      row.swing = row.approval - (first.r[r] !== undefined ? first.r[r] : row.approval);
-      row.reason = d.signs.length ? d.signs[0].label : d.story;
-    });
-    const readouts = ['health', 'housing', 'economy', 'crime', 'energy', 'transport'].map(k => ({
-      key: k, name: INDICATOR_NAMES[k], from: first.i[k], to: after.i[k],
-      before: readoutValue(k, first.i[k]).headline, after: readoutValue(k, after.i[k]).headline
-    }));
     const won = seats >= MAJORITY_THRESHOLD;
     const delivered = promisesDelivered();
 
@@ -1177,10 +1039,7 @@ window.Engine = (function () {
         ['NHS', readout('health').headline],
         ['Housing', readout('housing').headline]
       ],
-      record: state.record.slice(),
-      regionOrder: REGION_ORDER.slice(),
-      before: first, after: after, readouts: readouts,
-      defining: definingDecisions(3)
+      record: state.record.slice()
     };
   }
 
@@ -1216,7 +1075,6 @@ window.Engine = (function () {
     if (!Array.isArray(p.agenda) || !Array.isArray(p.promises)) return false;
     if (!Array.isArray(p.pending) || !Array.isArray(p.resolved)) return false;
     if (!Array.isArray(p.record)) return false;
-    if (p.history !== undefined && !Array.isArray(p.history)) return false;
     if (!Number.isFinite(p.approval) || !Number.isFinite(p.headroom)) return false;
     if (!Number.isFinite(p.party) || !Number.isFinite(p.turn)) return false;
     return true;
@@ -1257,63 +1115,15 @@ window.Engine = (function () {
   }
   function removeCustomPromise(i) { state.customPromises.splice(i, 1); }
 
-  function beginTerm(opts) {
-    opts = opts || {};
+  function beginTerm() {
     /* A new term replaces the old save only when it actually begins —
        not the moment the player looks at the manifesto screen. */
     clearSave();
     state.turn = 1;
     state.actionsLeft = ACTIONS_PER_TURN;
-    if (opts.tutorial && EVENT_META.nhs_strike) {
-      /* A first term opens on one card, the NHS strike, so the player learns
-         the game by answering something rather than reading about it. The
-         promises are chosen after that, once the currencies mean something. */
-      state.onboarding = { stage: 'first_card', seen: {} };
-      state.agenda = [{ eventId: 'nhs_strike', urgent: true, cost: EVENT_META.nhs_strike.cost }];
-    } else {
-      state.onboarding = { stage: 'done', seen: {} };
-      state.agenda = buildAgenda();
-    }
+    state.agenda = buildAgenda();
     state.phase = 'briefing';
-    state.history = [historyPoint()];
     save();
-  }
-
-  /* Promises chosen mid-tutorial, after the first decision. */
-  function lockPromises(ids) {
-    state.promises = (ids || []).slice(0, 3);
-    if (state.onboarding.stage === 'promises') state.onboarding.stage = 'first_run';
-    save();
-    return state.promises.slice();
-  }
-  function setOnboardingStage(stage) { state.onboarding.stage = stage; save(); return stage; }
-  function markCoach(key) {
-    if (!state.onboarding.seen[key]) { state.onboarding.seen[key] = true; save(); }
-  }
-  function onboarding() {
-    return { stage: state.onboarding.stage, seen: Object.assign({}, state.onboarding.seen) };
-  }
-
-  /* What each promise would mean, in the same words the dials use, so the
-     picker can say "4.9m waiting now, 6.7m to keep the promise". */
-  const PROMISE_TARGETS = {
-    nhs: ['health', 45], housing: ['housing', 45], growth: ['economy', 66],
-    crime: ['crime', 55], climate: ['energy', 55]
-  };
-  function promiseTargets() {
-    return PROMISES.map(p => {
-      const id = p[0];
-      const t = PROMISE_TARGETS[id];
-      if (t) {
-        return { id: id, icon: p[1], label: p[2], key: t[0], region: regionFor(null, t[0]),
-                 value: round(state.indicators[t[0]]), threshold: t[1],
-                 now: readoutValue(t[0], state.indicators[t[0]]).headline,
-                 target: readoutValue(t[0], t[1]).headline };
-      }
-      return { id: id, icon: p[1], label: p[2], key: 'headroom', region: 'London',
-               value: round(state.headroom), threshold: 8,
-               now: money(state.headroom) + ' headroom', target: '£8bn+ headroom, no tax rises' };
-    });
   }
 
   return {
@@ -1329,10 +1139,6 @@ window.Engine = (function () {
     britain: britain, readout: readout, money: money, govSeats: govSeats,
     confidence: function () { return round(state.confidence); },
     regions: regions, regionDetail: regionDetail, localCondition: localCondition,
-    save: save, load: load, hasSave: hasSave, clearSave: clearSave,
-    history: function () { return state.history.slice(); },
-    readoutValue: readoutValue, regionFor: regionFor, definingDecisions: definingDecisions,
-    lockPromises: lockPromises, setOnboardingStage: setOnboardingStage, markCoach: markCoach,
-    onboarding: onboarding, promiseTargets: promiseTargets
+    save: save, load: load, hasSave: hasSave, clearSave: clearSave
   };
 })();
