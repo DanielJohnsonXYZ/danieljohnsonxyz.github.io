@@ -189,13 +189,18 @@ YM.onboarding = (function () {
     el.hidden = true;
   }
 
+  function clearCoachQueue() {
+    queue = [];
+    dismissCoach();
+  }
+
   function advance() {
     dismissCoach();
     while (queue.length) {
       const item = queue.shift();
       if (E.onboarding().seen[item.key]) continue;
       const target = typeof item.target === 'function' ? item.target() : item.target;
-      if (!target) continue;
+      if (!target || !document.body.contains(target)) continue;
       display(item.key, target, item.text);
       return;
     }
@@ -221,6 +226,13 @@ YM.onboarding = (function () {
     if (activeCoach && activeCoach.target && !document.body.contains(activeCoach.target)) advance();
   });
   detachWatcher.observe(document.body, { childList: true, subtree: true });
+
+  /* When a decision or other modal opens, any desk coach has already done its
+     job. Clear it so the next coach can describe the state after the decision
+     rather than being stuck behind an overlay. */
+  B.on('overlay', function (count) {
+    if (count > 0 && activeCoach) clearCoachQueue();
+  });
 
   function position(bubble, targetEl) {
     const rect = targetEl.getBoundingClientRect();
@@ -304,5 +316,5 @@ YM.onboarding = (function () {
   }
 
   return { title: title, enterDesk: enterDesk, coach: coach, openPromisePicker: openPromisePicker,
-           openCabinetBriefing: openCabinetBriefing };
+           openCabinetBriefing: openCabinetBriefing, clearCoach: clearCoachQueue };
 })();
