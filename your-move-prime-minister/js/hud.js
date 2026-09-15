@@ -1,6 +1,6 @@
-/* The HUD: the strip across the top of the scene. Always visible outside the
-   title screen, and always the same four numbers no matter what overlay is
-   open on top of it — a player glances up, not away, to see how they stand. */
+/* The HUD answers three questions at a glance: where am I in the term, am I
+   doing well, and are my promises alive? Secondary government mechanics stay
+   available, but no longer compete with the first things a new player needs. */
 
 window.YM = window.YM || {};
 YM.hud = (function () {
@@ -9,6 +9,7 @@ YM.hud = (function () {
 
   const STAT_KEYS = ['approval', 'headroom', 'party', 'confidence'];
   let root = null;
+  let detailsOpen = false;
   const valueEls = {}, trendEls = {};
 
   function mount() {
@@ -63,17 +64,19 @@ YM.hud = (function () {
   }
 
   function statsRow() {
-    const row = D.h('div', { class: 'hud-stats' });
+    const row = D.h('div', { class: 'hud-stats' + (detailsOpen ? ' government-open' : '') });
     STAT_KEYS.forEach(function (key) {
       const meta = F.STAT[key];
       const v = statValue(key);
+      const secondary = key === 'party' || key === 'confidence';
       const valueEl = D.h('span', { class: 'hud-stat-value', text: statDisplay(key, v) });
       const trendEl = D.h('span', { class: 'hud-stat-trend flat', 'aria-hidden': 'false', text: '→' });
       setStatTrend(trendEl, key, statTrend(key, v));
       valueEls[key] = valueEl;
       trendEls[key] = trendEl;
       row.appendChild(D.h('div', {
-        class: 'hud-stat', 'data-stat': key, 'data-value': String(v), title: meta.help
+        class: 'hud-stat ' + (secondary ? 'hud-stat-secondary' : 'hud-stat-primary'),
+        'data-stat': key, 'data-value': String(v), title: meta.help
       },
         D.h('span', { class: 'hud-stat-label hud-stat-label-full', text: meta.name }),
         D.h('span', { class: 'hud-stat-label hud-stat-label-short', text: meta.short }),
@@ -82,23 +85,12 @@ YM.hud = (function () {
     return row;
   }
 
-  function sparkline() {
-    const hist = E.history().slice(-8);
-    const w = 96, h = 28, pad = 3;
-    const svg = D.svg('svg', {
-      class: 'hud-spark', viewBox: '0 0 ' + w + ' ' + h, width: w, height: h,
-      role: 'img', 'aria-label': 'Approval over the last ' + hist.length + ' quarters'
-    });
-    if (hist.length < 2) {
-      svg.appendChild(D.svg('line', { x1: pad, y1: h - pad, x2: w - pad, y2: h - pad, class: 'hud-spark-line' }));
-      return svg;
-    }
-    const xs = hist.map(function (p, i) { return pad + (w - pad * 2) * (i / (hist.length - 1)); });
-    const ys = hist.map(function (p) { return h - pad - (h - pad * 2) * (Math.max(0, Math.min(100, p.a)) / 100); });
-    const points = xs.map(function (x, i) { return x.toFixed(1) + ',' + ys[i].toFixed(1); }).join(' ');
-    svg.appendChild(D.svg('polyline', { points: points, class: 'hud-spark-line', fill: 'none' }));
-    svg.appendChild(D.svg('circle', { cx: xs[xs.length - 1], cy: ys[ys.length - 1], r: 2.2, class: 'hud-spark-dot' }));
-    return svg;
+  function governmentToggle() {
+    return D.h('button', {
+      class: 'btn ghost hud-government-toggle', type: 'button',
+      'aria-expanded': String(detailsOpen),
+      onClick: function () { detailsOpen = !detailsOpen; render(); }
+    }, detailsOpen ? 'Hide government detail' : 'Government detail');
   }
 
   function targetFor(id) {
@@ -123,7 +115,7 @@ YM.hud = (function () {
       : p.status === 'Broken' ? 'down' : '';
     const body = [
       D.h('p', null, D.h('span', { class: 'chip ' + statusClass, text: p.status })),
-      D.h('p', { class: 'muted', text: 'This is one of the promises voters will judge you on at the election.' })
+      D.h('p', { class: 'muted', text: 'Voters will judge you on this at the election.' })
     ];
     if (t) {
       body.push(D.h('ul', { class: 'stat-list' },
@@ -131,8 +123,8 @@ YM.hud = (function () {
         D.h('li', null, D.h('span', {}, 'Election target'), D.h('b', { text: displayTargetValue(t.target) })),
         t.region ? D.h('li', null, D.h('span', {}, 'Most visible in'), D.h('b', { text: t.region })) : null));
     }
-    body.push(D.h('h3', { text: 'How to think about it' }));
-    body.push(D.h('p', { text: 'Use the desk, the relevant country dial and the regional map together. Policies can improve the underlying measure immediately or take several quarters to land, so watch the trend as well as the current status.' }));
+    body.push(D.h('h3', { text: 'What moves this' }));
+    body.push(D.h('p', { text: 'Watch the matching national indicator and the regions most affected. Some decisions help straight away, others take several quarters to land.' }));
     B.open({ title: p.label, eyebrow: 'YOUR PROMISE', body: body.filter(Boolean) });
   }
 
@@ -154,14 +146,15 @@ YM.hud = (function () {
       },
         D.icon(p.icon),
         D.h('span', { class: 'chip-text' }, ' ', p.label),
-        D.h('span', { class: 'visually-hidden', text: ' — ' + p.status })));
+        D.h('span', { class: 'promise-chip-status', text: p.status })));
     });
     return wrap;
   }
 
   function render() {
     if (!root) return;
-    D.replace(root, turnBlock(), statsRow(), sparkline(), promiseChips());
+    D.replace(root, turnBlock(), statsRow(), governmentToggle(), promiseChips());
+    root.classList.toggle('hud-government-open', detailsOpen);
   }
 
   function set(key, value, from) {
