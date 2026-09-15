@@ -72,12 +72,12 @@ YM.desk = (function () {
       if (!card) return null;
       return D.h('li', null,
         D.h('b', { text: card.title }),
-        D.h('span', { text: entry.urgent ? ' — urgent, will worsen if ignored' : ' — will worsen if ignored' }));
+        D.h('span', { text: entry.urgent ? ' — urgent' : '' }));
     }).filter(Boolean);
     if (!list.length) return null;
     return D.h('div', { class: 'score-block desk-left-behind' },
-      D.h('p', { class: 'eyebrow', text: 'IF YOU ADVANCE NOW' }),
-      D.h('p', { class: 'small', text: 'You are choosing to leave these unanswered:' }),
+      D.h('p', { class: 'eyebrow', text: 'UNRESOLVED ISSUES' }),
+      D.h('p', { class: 'small', text: 'These will worsen if you advance:' }),
       D.h('ul', { class: 'matured-list' }, list));
   }
 
