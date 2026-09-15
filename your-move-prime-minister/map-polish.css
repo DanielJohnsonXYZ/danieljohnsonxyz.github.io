@@ -1,0 +1,116 @@
+/* Map polish: keep Britain readable without letting it dominate the control room. */
+
+/* London is a tiny polygon with an outside label. Anchor the label at its
+   existing x-position but draw the text inward, so no viewport can clip it. */
+.region[data-region="London"] .map-name,
+.region[data-region="London"] .map-value {
+  text-anchor: end;
+  transform: none;
+}
+
+@media (min-width: 900px) {
+  #map {
+    padding-top: 4px;
+  }
+
+  #map .panel-head {
+    align-items: center;
+    margin-bottom: 2px;
+  }
+
+  #map .panel-head p {
+    max-width: 32rem;
+  }
+
+  .map-wrap {
+    min-height: 0;
+    height: min(47vh, 455px);
+    max-height: 455px;
+    margin: 2px 0 0;
+    overflow: visible;
+    align-items: center;
+    justify-content: center;
+    padding: 0 36px 0 18px;
+  }
+
+  .uk-map {
+    width: auto;
+    height: 100%;
+    max-width: min(460px, calc(100% - 24px));
+    overflow: visible;
+    filter: drop-shadow(0 12px 16px rgba(0,0,0,.13));
+  }
+
+  .map-name {
+    font-size: 8.7px;
+    letter-spacing: 0;
+  }
+
+  .map-value {
+    font-size: 7.6px;
+  }
+
+  .map-signs {
+    display: none;
+  }
+
+  .region .map-shape {
+    stroke-width: 1.45;
+  }
+
+  .region:hover .map-shape,
+  .region:focus-visible .map-shape {
+    transform: scale(1.015);
+  }
+
+  .map-pin {
+    stroke-width: 1.25;
+    opacity: .95;
+  }
+
+  .map-pin-icon {
+    display: none;
+  }
+
+  /* The map already carries the regional numbers on desktop. The duplicate
+     chip row was reading like unstyled browser controls and added noise. */
+  #map > .map-chip-row {
+    display: none;
+  }
+
+  .map-legend {
+    justify-content: center;
+    gap: 12px;
+    margin: 4px 0 0;
+    font-size: 11px;
+    opacity: .62;
+  }
+
+  .map-legend .swatch {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+@media (max-width: 899px) {
+  /* Keep the compact chip strip because it replaces the map when collapsed. */
+  #map > .map-chip-row {
+    display: flex;
+  }
+
+  .map-chip {
+    gap: 7px;
+    padding: 8px 12px;
+    border: 1px solid rgba(136,103,32,.18);
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  }
+
+  .map-chip-name {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 13px;
+  }
+
+  .map-chip-value {
+    font-size: 12px;
+  }
+}
