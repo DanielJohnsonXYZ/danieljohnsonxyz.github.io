@@ -34,7 +34,6 @@ async function main() {
   ok('map shows a visible regional trend arrow', /[↑↓→]/.test(mapText), mapText);
 
   /* If cards are left, the run area names the consequence before the click. */
-  YM = null;
   await page.evaluate(function () { YM.debug.forceAgenda(['rates', 'energy']); });
   await page.waitForTimeout(100);
   const runArea = await page.locator('.desk-run').innerText();
