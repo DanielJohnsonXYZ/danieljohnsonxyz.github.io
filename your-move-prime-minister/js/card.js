@@ -9,8 +9,6 @@ YM.card = (function () {
 
   const ACTIONS_TOTAL = 3;
 
-  /* Maps the engine's change names (as returned by decide/holdVote/etc.) back
-     to the six dial keys, so a resolved card can pulse the dials it moved. */
   const NAME_TO_DIAL = {
     NHS: 'health', Housing: 'housing', Economy: 'economy',
     Crime: 'crime', Energy: 'energy', Transport: 'transport'
@@ -22,7 +20,12 @@ YM.card = (function () {
   function coinChip(cost) {
     let glyphs = '';
     for (let i = 0; i < ACTIONS_TOTAL; i++) glyphs += (i < cost ? '●' : '○');
-    return D.h('span', { class: 'chip gold', 'aria-label': 'Costs ' + cost + ' of ' + ACTIONS_TOTAL + ' actions' }, D.icon(glyphs));
+    return D.h('span', {
+      class: 'chip gold attention-chip',
+      'aria-label': 'Costs ' + cost + ' of ' + ACTIONS_TOTAL + ' attention this quarter'
+    },
+      D.icon(glyphs, 'attention-dots'),
+      D.h('span', { class: 'attention-label', text: cost + ' attention' }));
   }
 
   function adviserBlock(a, second) {
@@ -68,22 +71,26 @@ YM.card = (function () {
     explainBody.hidden = true;
     const explainBtn = D.h('button', {
       class: 'btn secondary explain-toggle', type: 'button', 'aria-expanded': 'false'
-    }, 'Explain this');
+    }, 'Read the full brief');
     explainBtn.addEventListener('click', function () {
       const willOpen = explainBody.hidden;
       explainBody.hidden = !willOpen;
       explainBtn.setAttribute('aria-expanded', String(willOpen));
+      explainBtn.textContent = willOpen ? 'Hide the full brief' : 'Read the full brief';
     });
 
-    const choices = D.h('div', { class: 'choices' });
+    const advisers = D.h('div', { class: 'adviser-row' },
+      adviserBlock(card.adviser, false),
+      card.secondOpinion ? adviserBlock(card.secondOpinion, true) : null);
+
+    const choices = D.h('div', { class: 'choices decision-choices' });
     card.choices.forEach(function (c) { choices.appendChild(choiceButton(card, entry, c)); });
 
     return [
       D.h('p', { class: 'card-lede', text: card.text }),
-      adviserBlock(card.adviser, false),
-      card.secondOpinion ? adviserBlock(card.secondOpinion, true) : null,
+      advisers,
       explainBtn, explainBody,
-      D.h('h3', { text: 'What do you do?' }),
+      D.h('h3', { text: 'Your decision' }),
       choices
     ];
   }
@@ -101,23 +108,18 @@ YM.card = (function () {
     if (E.onboarding().stage === 'first_card') tutorialCoach(card);
   }
 
-  /* The tutorial's one card, opened. Coach marks fire in the order a player
-     would actually notice them: the chips they are about to weigh, the
-     coins they are about to spend, then the place on the map this is about. */
   function tutorialCoach(card) {
     const O = YM.onboarding;
     O.coach('chips', document.querySelector('[role=dialog] .choice-chips'),
-      'These chips are what a choice costs and gains');
-    O.coach('coins', document.querySelector('#desk .coins'),
-      'You have three coins of attention a quarter');
+      'Green helps, red hurts. Attention is the amount of this quarter the choice consumes.');
+    O.coach('coins', document.querySelector('[role=dialog] .attention-chip'),
+      'You get three attention each quarter. Bigger decisions use more of it.');
     if (card.region) {
       O.coach('pin', document.querySelector('.region[data-region="' + card.region + '"] .map-pin'),
-        'This card is about the North — watch it on the map');
+        'This decision has a regional home. Watch the map after you act.');
     }
   }
 
-  /* Shared by card.js and vote.js: the same strip replaces whichever overlay
-     resolved, so a decision and a vote outcome read identically. */
   function outcomeStrip(result, onBack) {
     const strip = D.h('div', { class: 'outcome-strip' },
       D.h('h3', { class: 'serif', text: result.headline }),
@@ -163,9 +165,6 @@ YM.card = (function () {
     }
     B.scene.lastOutcome = result;
     const region = currentRegion;
-    /* The tutorial's one card, answered: the player has now seen what a
-       currency costs and gains, so promises (the next stage) can mean
-       something to them. */
     if (E.onboarding().stage === 'first_card') E.setOnboardingStage('promises');
     if (handle) handle.setBody(outcomeStrip(result, function () {
       const h = handle; handle = null;

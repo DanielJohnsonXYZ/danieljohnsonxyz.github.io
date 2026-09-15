@@ -18,7 +18,7 @@ YM.run = (function () {
   'use strict';
   const E = window.Engine, D = YM.dom, B = YM.bus, F = YM.fmt;
 
-  const WEEK_MS = 520;      // ~6.8s for the full 13-week walk
+  const WEEK_MS = 520;
   const TOTAL_WEEKS = 13;
   const BG_KINDS = ['drift', 'approval', 'fiscal', 'interest', 'surplus', 'confidence', 'strain'];
 
@@ -26,6 +26,12 @@ YM.run = (function () {
 
   function changeRow(c) {
     return D.h('span', { class: 'chip ' + (c.delta > 0 ? 'up' : 'down'), text: F.deltaChip(c) });
+  }
+
+  function changesWrap(changes) {
+    const row = D.h('div', { class: 'change-chips' });
+    (changes || []).forEach(function (c) { row.appendChild(changeRow(c)); });
+    return row;
   }
 
   function immediateBlock(report) {
@@ -37,31 +43,45 @@ YM.run = (function () {
     const row = D.h('div', { class: 'change-chips' });
     rises.forEach(function (c) { row.appendChild(changeRow(c)); });
     falls.forEach(function (c) { row.appendChild(changeRow(c)); });
-    return D.h('section', { class: 'score-block' }, D.h('h3', { text: 'What moved this quarter' }), row);
+    return D.h('section', { class: 'score-block' },
+      D.h('h3', { text: 'Net movement this quarter' }),
+      D.h('p', { class: 'muted small', text: 'This is where Britain ended up after your choices, delayed effects and the things you left alone.' }),
+      row);
   }
 
-  function maturedBlock(report) {
-    if (!report.matured.length) return null;
+  function causeChainBlock(report) {
+    const items = [];
+    report.matured.forEach(function (m) {
+      items.push(D.h('li', null,
+        D.h('p', null,
+          D.h('b', { text: 'Because you chose ' + (m.causeChoice || m.cause) }),
+          D.h('span', { text: ' → ' + m.text })),
+        changesWrap(m.changes || [])));
+    });
+    report.neglected.forEach(function (n) {
+      items.push(D.h('li', null,
+        D.h('p', null,
+          D.h('b', { text: 'Because you left ' + n.title + ' unanswered' }),
+          D.h('span', { text: ' → ' + n.text })),
+        D.h('span', { class: 'chip down', text: F.deltaChip(n.change) })));
+    });
+    if (!items.length) return null;
     return D.h('section', { class: 'score-block' },
-      D.h('h3', { text: 'Decisions you made earlier are landing' }),
-      D.h('ul', { class: 'matured-list' }, report.matured.map(function (m) {
-        const row = D.h('div', { class: 'change-chips' });
-        (m.changes || []).forEach(function (c) { row.appendChild(changeRow(c)); });
-        return D.h('li', null,
-          D.h('p', null, D.h('b', { text: m.causeChoice || m.cause }), D.h('span', { text: ' → ' + m.text })),
-          row);
-      })));
+      D.h('h3', { text: 'Why it moved' }),
+      D.h('ul', { class: 'matured-list' }, items));
   }
 
-  function neglectedBlock(report) {
-    if (!report.neglected.length) return null;
+  function promiseBlock() {
+    const promises = E.promiseStatus ? E.promiseStatus() : [];
+    if (!promises.length) return null;
+    const row = D.h('div', { class: 'change-chips' });
+    promises.slice(0, 3).forEach(function (p) {
+      const cls = p.status === 'On track' || p.status === 'Delivered' ? 'up'
+        : p.status === 'Broken' ? 'down' : '';
+      row.appendChild(D.h('span', { class: 'chip ' + cls, text: p.label + ': ' + p.status }));
+    });
     return D.h('section', { class: 'score-block' },
-      D.h('h3', { text: 'Left unattended' }),
-      D.h('ul', { class: 'matured-list' }, report.neglected.map(function (n) {
-        return D.h('li', null,
-          D.h('p', null, D.h('b', { text: n.title }), D.h('span', { text: ' — ' + n.text })),
-          D.h('span', { class: 'chip down', text: F.deltaChip(n.change) }));
-      })));
+      D.h('h3', { text: 'Your promises now' }), row);
   }
 
   function buildBody(report) {
@@ -81,9 +101,9 @@ YM.run = (function () {
     if (report.strain) {
       blocks.push(D.h('p', { class: 'muted', text: report.strain.text }));
     }
+    blocks.push(causeChainBlock(report));
     blocks.push(immediateBlock(report));
-    blocks.push(maturedBlock(report));
-    blocks.push(neglectedBlock(report));
+    blocks.push(promiseBlock());
     if (report.coming) {
       blocks.push(D.h('p', { class: 'coming', text: 'Coming: ' + report.coming.text + ' — in ' + report.coming.quarters + ' quarter' + (report.coming.quarters === 1 ? '' : 's') }));
     }
@@ -91,7 +111,7 @@ YM.run = (function () {
       class: 'btn big block', type: 'button',
       onClick: function () { next(report); }
     }, report.final ? 'To the count' : 'Next quarter'));
-    return blocks;
+    return blocks.filter(Boolean);
   }
 
   let handle = null;
@@ -104,22 +124,18 @@ YM.run = (function () {
     });
     handle.el.id = 'scorecard';
     if (E.onboarding().stage === 'first_run' && D.motion() !== 'reduced') {
-      YM.onboarding.coach('run_scorecard', handle.el, 'What changed, and what is still coming');
+      YM.onboarding.coach('run_scorecard', handle.el, 'What changed, why it changed, and what is still coming');
     }
   }
 
   function next(report) {
     const h = handle; handle = null;
     if (h) h.close();
-    /* This was the tutorial's one watched run: the player has now seen the
-       country move on its own, so the tutorial is over. */
     if (E.onboarding().stage === 'first_run') E.setOnboardingStage('done');
     if (report.final) {
       YM.election.play(report.final);
       return;
     }
-    /* The scorecard for this quarter is no longer showing: move off
-       'consequences' (see the comment at the top of this file). */
     E.state.phase = 'decision';
     E.save();
     B.setPhase('desk');
@@ -140,9 +156,6 @@ YM.run = (function () {
   }
   function deskAnchor() { return D.$('desk'); }
 
-  /* At most one callout on screen at a time; the next one replaces it.
-     Never shown under reduced motion — the scorecard carries the same
-     information once the sequence finishes. */
   function showCallout(anchorEl, cause, effect, changes) {
     hideCallout();
     if (D.motion() === 'reduced' || !anchorEl) return;
@@ -152,10 +165,6 @@ YM.run = (function () {
     (changes || []).forEach(function (c) {
       chips.appendChild(D.h('span', { class: 'chip ' + (c.delta > 0 ? 'up' : 'down'), text: F.deltaChip(c) }));
     });
-    /* Decorative: it floats over the map for a couple of seconds and is
-       gone, redundant with the scorecard that follows — not something an
-       AT user should have to stumble onto in the DOM. Its text is pushed
-       through the one shared live region instead, once, here. */
     const el = D.h('div', { class: 'run-callout', 'aria-hidden': 'true' },
       cause ? D.h('p', { class: 'run-callout-cause small', text: cause }) : null,
       D.h('p', { class: 'run-callout-effect', text: effect }),
@@ -198,19 +207,6 @@ YM.run = (function () {
 
   /* -------------------------------------------------------------- script */
 
-  /* Every step targets the setters the scene already exposes (hud.set,
-     dials.setDial, map.setRegion, plus their pulse() methods) with the
-     values report.timeline already computed. Applying a step is always
-     idempotent and finalising: it sets each changed value to its final
-     `to`, whether animated (the normal walk) or instant (Skip, reduced
-     motion, or any leftover steps when the sequence is finished early) —
-     running every remaining step this way leaves the DOM exactly as the
-     render() at the end of the sequence would. */
-
-  /* The tutorial's second coach mark during a run: the first thing the
-     player actually sees move, whichever key it happens to be — a dial, a
-     region, or just the HUD. Fires at most once (coach() itself is
-     idempotent once shown), so every call after the first is free. */
   function maybeLanding(animate, el) {
     if (!animate || !el) return;
     if (D.motion() === 'reduced') return;
@@ -234,15 +230,12 @@ YM.run = (function () {
       YM.dials.pulse(key, c.delta > 0 ? 'up' : c.delta < 0 ? 'down' : null);
       maybeLanding(animate, document.querySelector('.dial[data-key="' + key + '"]'));
     }
-    /* Other indicator keys (services, migration, defence) have no tile of
-       their own — the engine still holds the change, the map/region picture
-       reflects it, there is just nothing on the desk to point at directly. */
   }
 
   function applyEntry(entry, instant) {
     if (!instant) hideCallout();
     (entry.changes || []).forEach(function (c) { applyChange(c, !instant); });
-    if (instant) return; // no callouts or ticker chatter when finishing early
+    if (instant) return;
 
     switch (entry.kind) {
       case 'bill_lapsed': {
@@ -281,11 +274,6 @@ YM.run = (function () {
     }
   }
 
-  /* Walks report.timeline in order, handing each entry a week from 1-13:
-     the lapsed bill (if any) is week 1; every matured and every neglected
-     entry gets its own week straight after; the background movers that
-     have no callout of their own share whatever weeks are left before the
-     map (week 12) and the headline (week 13). */
   function buildSteps(report) {
     const tl = report.timeline;
     const items = [];
@@ -314,11 +302,6 @@ YM.run = (function () {
     return items;
   }
 
-  /* Plays `items` — already sorted by week — against real time, one
-     setTimeout per distinct week so entries sharing a week land together.
-     finish() runs everything left immediately and synchronously; cancel()
-     just stops, for when the scene changes out from under a running
-     sequence. Both are safe to call more than once. */
   function playSeq(items, onDone) {
     let idx = 0, timer = null, cancelled = false, done = false;
     const startedAt = (window.performance && performance.now) ? performance.now() : Date.now();
@@ -359,25 +342,12 @@ YM.run = (function () {
   let activeSeq = null;
   let lastSteps = [];
 
-  /* Any change of scene while a sequence is running stops it — the render()
-     that follows is what actually leaves the DOM correct, a stray timer
-     firing into a scene that has moved on must not touch anything. */
   B.on('phase', function (p) { if (p !== 'running' && activeSeq) activeSeq.cancel(); });
 
   function quarter() {
     if (E.state.bill) return;
-
-    /* 1. Freeze the scene and read the pre-turn display values before the
-          engine advances — report.timeline's own `from` fields already
-          carry these forward (the engine snapshots them before it touches
-          anything), so nothing else needs to remember them separately. */
     B.freeze();
-
-    /* 2. The engine settles the whole quarter in one call. E.state is now
-          the *post*-turn state; nothing re-renders from it until step 6. */
     const report = E.endTurn();
-
-    /* 3. Enter the running phase. */
     B.setPhase('running');
     YM.desk.setEnabled(false);
     buildTicker(report);
@@ -386,15 +356,10 @@ YM.run = (function () {
       YM.onboarding.coach('run_ticker', D.$('ticker'), 'The country moves whether you act or not');
     }
 
-    /* 4-5. Build and play the week-by-week script. */
     const items = buildSteps(report);
     lastSteps = items.map(function (it) { return { kind: it.kind, week: it.week }; });
 
     activeSeq = playSeq(items, function () {
-      /* 6. Done (naturally, by Skip, or because motion is reduced): drop
-            the ticker and callout, thaw the scene, and do one full render
-            — that render is the correctness guarantee, not any of the
-            steps above it. */
       hideCallout();
       if (tickerHandle) tickerHandle.el.hidden = true;
       B.thaw();
@@ -406,7 +371,6 @@ YM.run = (function () {
 
   return {
     quarter: quarter, scorecard: scorecard,
-    /* debug-only surface, read by YM.debug in js/app.js */
     lastSteps: function () { return lastSteps.slice(); }
   };
 })();

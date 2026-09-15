@@ -1,0 +1,64 @@
+/* Small component rules used by the Phase 3A.1 markup changes. */
+
+.hud-stat-reading {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.desk-card-cost {
+  flex: 0 0 auto;
+  min-width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  margin: -2px -1px -2px 4px;
+  padding-left: 9px;
+  border-left: 1px solid rgba(136,103,32,.18);
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.desk-card-cost-num {
+  color: var(--gold-deep);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1;
+}
+.desk-card-cost-label {
+  margin-top: 3px;
+  font-size: 8.5px;
+  font-weight: 800;
+}
+
+/* Keep status direction semantic: green means better, red means worse. */
+.choice .chip.on-cream.up,
+.change-chips .chip.up { color: var(--good); }
+.choice .chip.on-cream.down,
+.change-chips .chip.down { color: var(--bad); }
+
+/* Avoid visual competition from event emoji on the desk. They remain useful
+   identifiers, but behave like small stamps rather than hero artwork. */
+.desk-card-icon {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 27px;
+  border-radius: 50%;
+  background: rgba(136,103,32,.09);
+  font-size: 15px;
+  filter: saturate(.72);
+}
+
+@media (max-width: 899px) {
+  .hud-stat-reading { gap: 1px; }
+  .hud-stat-trend { font-size: 11px; margin-left: 2px; }
+  .desk-card-cost { min-width: 47px; padding-left: 7px; }
+  .desk-card-cost-num { font-size: 21px; }
+  .desk-card-cost-label { font-size: 8px; }
+}
