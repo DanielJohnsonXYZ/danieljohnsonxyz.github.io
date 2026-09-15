@@ -1,0 +1,134 @@
+/* First-day briefing: one concise screen between Take office and the first crisis. */
+.intro-overlay {
+  width: min(100%, 760px);
+}
+
+.intro-overlay .overlay-head {
+  padding-bottom: 14px;
+}
+
+.intro-briefing {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.intro-opening {
+  margin: 0;
+  max-width: 56ch;
+  font-size: clamp(20px, 2.8vw, 26px);
+  line-height: 1.28;
+}
+
+.intro-rules {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.intro-rule {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  padding: 13px 14px;
+  background: rgba(240,228,203,.58);
+  border: 1px solid var(--cream-line);
+  border-radius: 8px;
+}
+
+.intro-rule-kicker {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--navy-deep);
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.intro-rule h3 {
+  margin: 1px 0 4px;
+  font-size: 16px;
+}
+
+.intro-rule p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.42;
+}
+
+.intro-redbox {
+  position: relative;
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 8px;
+  color: var(--pale);
+  background: linear-gradient(135deg, #8f201f, #651414);
+  box-shadow: 0 10px 22px rgba(72,10,10,.2);
+}
+
+.intro-redbox .eyebrow {
+  color: #f2cf87;
+  margin-bottom: 4px;
+}
+
+.intro-redbox p:last-child {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.intro-redbox-mark {
+  display: block;
+  width: 64px;
+  height: 40px;
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg, transparent 46%, rgba(242,207,135,.9) 46%, rgba(242,207,135,.9) 54%, transparent 54%),
+    #9f2926;
+  border: 1px solid #c85a53;
+  box-shadow: 0 8px 18px rgba(0,0,0,.24), inset 0 0 0 2px rgba(63,4,4,.14);
+  transform: rotate(-3deg);
+}
+
+.intro-start {
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .intro-overlay .overlay-title {
+    font-size: 25px;
+  }
+
+  .intro-opening {
+    font-size: 20px;
+  }
+
+  .intro-rules {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .intro-rule {
+    padding: 10px 11px;
+  }
+
+  .intro-redbox {
+    grid-template-columns: 54px 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .intro-redbox-mark {
+    width: 50px;
+    height: 33px;
+  }
+}
