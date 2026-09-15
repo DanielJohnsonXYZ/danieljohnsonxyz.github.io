@@ -9,7 +9,7 @@ YM.hud = (function () {
 
   const STAT_KEYS = ['approval', 'headroom', 'party', 'confidence'];
   let root = null;
-  const valueEls = {};
+  const valueEls = {}, trendEls = {};
 
   function mount() {
     root = D.$('hud');
@@ -23,6 +23,28 @@ YM.hud = (function () {
   }
   function statDisplay(key, v) {
     return key === 'headroom' ? F.money(v) : (v + '%');
+  }
+  function pointValue(p, key) {
+    if (!p) return null;
+    if (key === 'approval') return p.a;
+    if (key === 'headroom') return p.h;
+    if (key === 'party') return p.p;
+    if (key === 'confidence') return p.c;
+    return null;
+  }
+  function statTrend(key, current) {
+    const hist = E.history();
+    if (hist.length < 2) return 0;
+    const prev = pointValue(hist[hist.length - 2], key);
+    if (prev === null || prev === undefined) return 0;
+    return Math.round(current) - Math.round(prev);
+  }
+  function setStatTrend(el, key, delta) {
+    if (!el) return;
+    el.className = 'hud-stat-trend ' + (delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat');
+    el.textContent = delta > 0 ? '↑' : delta < 0 ? '↓' : '→';
+    const amount = key === 'headroom' ? '£' + Math.abs(delta) + 'bn' : Math.abs(delta) + ' points';
+    el.setAttribute('aria-label', delta > 0 ? 'Up ' + amount + ' since last quarter' : delta < 0 ? 'Down ' + amount + ' since last quarter' : 'Unchanged since last quarter');
   }
 
   function whenShort(turn) { return 'Y' + F.year(turn) + ' ' + F.season(turn).slice(0, 3); }
@@ -46,13 +68,16 @@ YM.hud = (function () {
       const meta = F.STAT[key];
       const v = statValue(key);
       const valueEl = D.h('span', { class: 'hud-stat-value', text: statDisplay(key, v) });
+      const trendEl = D.h('span', { class: 'hud-stat-trend flat', 'aria-hidden': 'false', text: '→' });
+      setStatTrend(trendEl, key, statTrend(key, v));
       valueEls[key] = valueEl;
+      trendEls[key] = trendEl;
       row.appendChild(D.h('div', {
         class: 'hud-stat', 'data-stat': key, 'data-value': String(v), title: meta.help
       },
         D.h('span', { class: 'hud-stat-label hud-stat-label-full', text: meta.name }),
         D.h('span', { class: 'hud-stat-label hud-stat-label-short', text: meta.short }),
-        valueEl));
+        D.h('span', { class: 'hud-stat-reading' }, valueEl, trendEl)));
     });
     return row;
   }
@@ -147,8 +172,10 @@ YM.hud = (function () {
     if (holder) holder.setAttribute('data-value', String(to));
     if (from !== undefined && from !== null && Math.round(from) !== to) {
       D.tween(el, Math.round(from), to, function (v) { return statDisplay(key, v); }, 400);
+      setStatTrend(trendEls[key], key, to - Math.round(from));
     } else {
       el.textContent = statDisplay(key, to);
+      setStatTrend(trendEls[key], key, statTrend(key, to));
     }
   }
 
