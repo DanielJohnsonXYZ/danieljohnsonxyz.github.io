@@ -18,13 +18,13 @@ YM.fmt = (function () {
     return left + ' quarters to the election';
   }
 
-  /* Plain-English names for the four currencies. The engine's names are
-     kept as aria descriptions so the numbers still mean the same thing. */
+  /* Keep the top-line language ordinary. The engine can stay technical
+     underneath, but a player should not need a politics or economics degree. */
   const STAT = {
-    approval:   { name: 'Approval',      short: 'Approval', unit: '%',  help: 'How the country rates the government' },
-    headroom:   { name: 'Spare money',   short: 'Money',    unit: 'bn', help: 'Fiscal headroom: what you can spend without borrowing' },
-    party:      { name: 'Your MPs',      short: 'MPs',      unit: '%',  help: 'Party unity: how far your own side will follow you' },
-    confidence: { name: 'Market confidence', short: 'Markets', unit: '%', help: 'What lenders think of your books' }
+    approval:   { name: 'Approval',   short: 'Approval', unit: '%',  help: 'How voters feel about your government' },
+    headroom:   { name: 'Money left', short: 'Money',    unit: 'bn', help: 'How much you can spend without borrowing more' },
+    party:      { name: 'MP support', short: 'MPs',      unit: '%',  help: 'How strongly your own MPs are backing you' },
+    confidence: { name: 'Markets',    short: 'Markets',  unit: '%',  help: 'How confident lenders are in the government finances' }
   };
   /* Change lists use the engine's names; map them to the player-facing ones. */
   const ENGINE_TO_STAT = { 'Approval': 'approval', 'Fiscal headroom': 'headroom', 'Your party': 'party', 'Market confidence': 'confidence' };
@@ -40,7 +40,7 @@ YM.fmt = (function () {
     if (unit === 'bn') return sign + '£' + Math.abs(r) + 'bn';
     return sign + Math.abs(r) + (unit || '');
   }
-  /* "NHS 28 → 32 (+4)" / "Spare money £24bn → £17bn" */
+  /* "NHS 28 → 32 (+4)" / "Money left £24bn → £17bn" */
   function deltaText(c) {
     const isMoney = c.unit === 'bn' || c.name === 'Fiscal headroom';
     if (isMoney) return statName(c.name) + ' ' + money(c.from) + ' → ' + money(c.to);
@@ -53,7 +53,7 @@ YM.fmt = (function () {
   }
 
   /* Region fills: light enough to take dark labels. Colour is never the only
-     signal — every region also states its name and status in words. */
+     signal, every region also states its name and status in words. */
   const CONDITION_FILL = {
     Critical: '#c96a6a', Poor: '#cf9256', Strained: '#c9b45f', Steady: '#6fbf90', Strong: '#8ad6a8'
   };
