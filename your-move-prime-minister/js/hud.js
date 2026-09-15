@@ -25,9 +25,6 @@ YM.hud = (function () {
     return key === 'headroom' ? F.money(v) : (v + '%');
   }
 
-  /* Short forms for the 56px mobile row — "Year 2, Autumn" and "13 quarters
-     to the election" both run well past what two lines at that height can
-     hold without wrapping onto a third. CSS picks whichever pair is shown. */
   function whenShort(turn) { return 'Y' + F.year(turn) + ' ' + F.season(turn).slice(0, 3); }
   function countdownShort(turn) {
     const left = E.TURNS - turn;
@@ -53,9 +50,6 @@ YM.hud = (function () {
       row.appendChild(D.h('div', {
         class: 'hud-stat', 'data-stat': key, 'data-value': String(v), title: meta.help
       },
-        /* Two labels, one shown at a time by CSS: the full name at 900px
-           and up, the short one below it, where there is no room for
-           "Market confidence" on a 56px-tall row. */
         D.h('span', { class: 'hud-stat-label hud-stat-label-full', text: meta.name }),
         D.h('span', { class: 'hud-stat-label hud-stat-label-short', text: meta.short }),
         valueEl));
@@ -63,8 +57,6 @@ YM.hud = (function () {
     return row;
   }
 
-  /* Eight quarters of approval, smallest possible chart that still shows a
-     shape: not "is it up" but "what has it been doing". */
   function sparkline() {
     const hist = E.history().slice(-8);
     const w = 96, h = 28, pad = 3;
@@ -84,13 +76,40 @@ YM.hud = (function () {
     return svg;
   }
 
-  /* Under 900px the chips collapse to icon-only; tapping one expands it to
-     show its label too (js/hud.js keeps which ones are expanded — a plain
-     CSS/media-query toggle can't remember per-chip state across renders).
-     Above 900px the CSS never hides .chip-text, so this has no visible
-     effect on desktop. */
-  const expandedPromises = {};
-  function togglePromiseChip(id) { expandedPromises[id] = !expandedPromises[id]; render(); }
+  function targetFor(id) {
+    if (!E.promiseTargets) return null;
+    const targets = E.promiseTargets() || [];
+    return targets.find(function (t) { return t.id === id; }) || null;
+  }
+
+  function displayTargetValue(v) {
+    if (v === undefined || v === null) return '—';
+    if (typeof v === 'object') {
+      if (v.headline) return v.headline;
+      if (v.text) return v.text;
+      if (v.value !== undefined) return String(v.value);
+    }
+    return String(v);
+  }
+
+  function openPromise(p) {
+    const t = targetFor(p.id);
+    const statusClass = p.status === 'On track' || p.status === 'Delivered' ? 'up'
+      : p.status === 'Broken' ? 'down' : '';
+    const body = [
+      D.h('p', null, D.h('span', { class: 'chip ' + statusClass, text: p.status })),
+      D.h('p', { class: 'muted', text: 'This is one of the promises voters will judge you on at the election.' })
+    ];
+    if (t) {
+      body.push(D.h('ul', { class: 'stat-list' },
+        D.h('li', null, D.h('span', {}, 'Now'), D.h('b', { text: displayTargetValue(t.current) })),
+        D.h('li', null, D.h('span', {}, 'Election target'), D.h('b', { text: displayTargetValue(t.target) })),
+        t.region ? D.h('li', null, D.h('span', {}, 'Most visible in'), D.h('b', { text: t.region })) : null));
+    }
+    body.push(D.h('h3', { text: 'How to think about it' }));
+    body.push(D.h('p', { text: 'Use the desk, the relevant country dial and the regional map together. Policies can improve the underlying measure immediately or take several quarters to land, so watch the trend as well as the current status.' }));
+    B.open({ title: p.label, eyebrow: 'YOUR PROMISE', body: body.filter(Boolean) });
+  }
 
   function promiseChips() {
     const wrap = D.h('div', { class: 'hud-promises', 'aria-label': 'Your promises' });
@@ -102,15 +121,15 @@ YM.hud = (function () {
     list.slice(0, 3).forEach(function (p) {
       const cls = p.status === 'On track' || p.status === 'Delivered' ? 'up'
                 : p.status === 'Broken' ? 'down' : '';
-      const expanded = !!expandedPromises[p.id];
       wrap.appendChild(D.h('button', {
-        class: 'chip promise-chip' + (cls ? ' ' + cls : '') + (expanded ? ' expanded' : ''),
-        type: 'button', title: p.status, 'aria-expanded': String(expanded),
-        'aria-label': p.label + ' — ' + p.status,
-        onClick: function () { togglePromiseChip(p.id); }
+        class: 'chip promise-chip' + (cls ? ' ' + cls : ''),
+        type: 'button', title: 'Open promise progress',
+        'aria-label': p.label + ' — ' + p.status + '. Open progress.',
+        onClick: function () { openPromise(p); }
       },
         D.icon(p.icon),
-        D.h('span', { class: 'chip-text', 'aria-hidden': 'true' }, ' ', p.label)));
+        D.h('span', { class: 'chip-text' }, ' ', p.label),
+        D.h('span', { class: 'visually-hidden', text: ' — ' + p.status })));
     });
     return wrap;
   }
@@ -120,11 +139,6 @@ YM.hud = (function () {
     D.replace(root, turnBlock(), statsRow(), sparkline(), promiseChips());
   }
 
-  /* Targeted update: just the one number, no rebuild. `from`, when given,
-     counts the visible text up from there over ~400ms (js/run.js, watching
-     the quarter happen); the data-value attribute — what assertSynced()
-     checks — is always set to the true value immediately, only the on-screen
-     digits lag behind while they animate. */
   function set(key, value, from) {
     const el = valueEls[key];
     if (!el) return;
@@ -144,9 +158,6 @@ YM.hud = (function () {
     if (holder) D.pulse(holder, dir === 'up' ? 'pulse-up' : dir === 'down' ? 'pulse-down' : 'pulse');
   }
 
-  /* Called once, right after the promises picker locks in three: the HUD
-     chips it just grew get the same gold ring every other landed change
-     gets, so a player looks up and sees where their promises went. */
   function pulsePromises() {
     const el = root && root.querySelector('.hud-promises');
     if (el) D.pulse(el, 'pulse');
