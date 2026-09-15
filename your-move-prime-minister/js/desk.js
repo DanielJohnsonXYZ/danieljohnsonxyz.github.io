@@ -9,11 +9,6 @@ YM.desk = (function () {
   const ACTIONS_TOTAL = 3;
   let root = null;
   let runBtn = null;
-  /* Under 900px #desk is a bottom sheet: peek (collapsed) or expanded.
-     Doesn't persist across reloads — unlike the map's collapse, spec
-     doesn't ask for it, and a fresh visit starting peeked is the safer
-     default (it is the more compact one). Has no visible effect above
-     900px, where the sheet CSS never applies. */
   let expanded = false;
   function toggleExpanded() { expanded = !expanded; render(); }
 
@@ -30,10 +25,6 @@ YM.desk = (function () {
     return row;
   }
 
-  /* Stage 'promises': not an engine event, so it is built here rather than
-     coming from E.agendaCard — the desk's one way of saying "this is what
-     the game needs from you next" when there is nothing real on the desk
-     to point at yet. */
   function partyChairCard() {
     return D.h('li', { class: 'desk-card party-chair' },
       D.h('button', {
@@ -70,11 +61,26 @@ YM.desk = (function () {
         coinRow(card.cost, ACTIONS_TOTAL, 'Costs ' + card.cost + ' of ' + ACTIONS_TOTAL + ' actions')));
   }
 
+  function leftBehindBlock(agenda, stage) {
+    if (stage === 'first_card' || stage === 'promises') return null;
+    const undone = agenda.filter(function (a) { return !a.done; });
+    if (!undone.length) return null;
+    const list = undone.slice(0, 4).map(function (entry) {
+      const card = E.agendaCard(entry);
+      if (!card) return null;
+      return D.h('li', null,
+        D.h('b', { text: card.title }),
+        D.h('span', { text: entry.urgent ? ' — urgent, will worsen if ignored' : ' — will worsen if ignored' }));
+    }).filter(Boolean);
+    if (!list.length) return null;
+    return D.h('div', { class: 'score-block desk-left-behind' },
+      D.h('p', { class: 'eyebrow', text: 'IF YOU RUN THE QUARTER NOW' }),
+      D.h('p', { class: 'small', text: 'You are choosing to leave these unanswered:' }),
+      D.h('ul', { class: 'matured-list' }, list));
+  }
+
   function render() {
     if (!root) return;
-    /* Once the term is over the desk has nothing left to offer — election
-       night owns #desk from here (js/election.js), and re-rendering the
-       normal desk UI over it would erase the results panel. */
     if (E.state.turn > E.TURNS) return;
     const s = E.state;
     const stage = E.onboarding().stage;
@@ -87,7 +93,8 @@ YM.desk = (function () {
 
     const runLabel = stage === 'first_card' ? 'Answer the strike first'
       : stage === 'promises' ? 'Choose your promises first'
-      : s.turn === E.TURNS ? 'Face the voters' : 'Run the quarter';
+      : s.turn === E.TURNS ? 'Face the voters'
+      : undone ? 'Run the quarter · leave ' + undone : 'Run the quarter';
     runBtn = D.h('button', {
       id: 'run-btn', class: 'btn big block' + (stage === 'first_run' ? ' glow' : ''), type: 'button',
       disabled: !!s.bill || tutorialBlocked,
@@ -97,12 +104,8 @@ YM.desk = (function () {
     const hint = s.bill ? 'A bill is before the Commons. Settle it before you can run the quarter.'
       : stage === 'first_card' ? 'Answer the strike to begin'
       : stage === 'promises' ? 'Choose your promises first'
-      : (undone ? undone + ' item' + (undone === 1 ? '' : 's') + ' left unanswered will get worse.' : 'Everything on your desk has an answer.');
+      : (undone ? 'Running now is a deliberate choice to let ' + undone + ' unanswered item' + (undone === 1 ? '' : 's') + ' worsen.' : 'Everything on your desk has an answer.');
 
-    /* The grab handle and the "Your desk" heading are the two ways to
-       toggle the mobile bottom sheet (js/desk.js only — the CSS that makes
-       this visible only applies under 900px, so on a wide screen these are
-       just two harmless buttons). */
     const handle = D.h('button', {
       class: 'desk-handle', type: 'button', 'aria-expanded': String(expanded),
       'aria-label': expanded ? 'Collapse your desk' : 'Expand your desk',
@@ -120,7 +123,7 @@ YM.desk = (function () {
         coinRow(ACTIONS_TOTAL - s.actionsLeft, ACTIONS_TOTAL, s.actionsLeft + ' of ' + ACTIONS_TOTAL + ' actions left')),
       D.h('div', { class: 'desk-scroll' },
         items.length ? list : D.h('p', { class: 'muted', text: 'Nothing on the desk. Run the quarter to see what comes next.' })),
-      D.h('div', { class: 'desk-run' }, runBtn, D.h('p', { class: 'muted small', text: hint })));
+      D.h('div', { class: 'desk-run' }, leftBehindBlock(agenda, stage), runBtn, D.h('p', { class: 'muted small', text: hint })));
 
     root.classList.toggle('desk-expanded', expanded);
     setEnabled(!s.bill);
