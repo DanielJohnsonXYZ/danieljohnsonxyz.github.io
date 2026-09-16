@@ -1,0 +1,87 @@
+const state={week:1,approval:56,budget:22,country:63,services:59,economy:64,housing:51,resilience:57,choiceLog:[],project:false,healthChoice:null};
+const events=[
+ {place:'Manchester',marker:['45%','38%'],city:'cityManchester',kind:'HEALTH',title:'Hospitals are filling up',desc:'Waiting times are rising across the North West. The Health Secretary wants a decision this week.',adviser:['AM','Health Secretary','“We can relieve the pressure quickly, but the permanent fix costs more.”'],news:'Hospital waiting pressure is building across the North West.',choices:[
+  ['Open temporary capacity','Fast relief, but it does not fix the underlying problem.','Fast · temporary','£1.0bn',{budget:-1,services:3,approval:1},'temporary'],
+  ['Expand permanent capacity','Slower and more expensive, but strengthens the system.','Strong · long-term','£2.0bn',{budget:-2,services:5,country:1},'permanent'],
+  ['Focus on discharges and community care','Cheaper, less dramatic, but targets the bottleneck.','Balanced','£0.7bn',{budget:-.7,services:2,economy:1},'flow']
+ ]},
+ {place:'London',marker:['56%','72%'],city:'cityLondon',kind:'TRANSPORT',title:'Rail disruption is spreading',desc:'A week of cancellations is hurting commuters and businesses. You need to decide how hard to intervene.',adviser:['RS','Transport Secretary','“We can settle quickly, push for reform, or ride it out.”'],news:'Rail disruption dominates the morning news and commuter frustration is rising.',choices:[
+  ['Broker a quick settlement','Gets trains moving quickly, at a fiscal cost.','Quick win','£0.8bn',{budget:-.8,approval:2,country:1}],
+  ['Trade support for reform','Takes longer, but may improve the system.','Slower · stronger','£0.4bn',{budget:-.4,economy:2,country:1}],
+  ['Hold the line','Costs little, but disruption may continue.','Risky','£0bn',{approval:-2,economy:-1}]
+ ]},
+ {place:'Birmingham',marker:['46%','55%'],city:'cityBirmingham',kind:'HOUSING',title:'Rents are rising quickly',desc:'Housing pressure is becoming the biggest local concern in several cities.',adviser:['KH','Housing Secretary','“The question is whether we spend now, change planning, or do a bit of both.”'],news:'Housing costs climb up the political agenda.',choices:[
+  ['Fund new homes','Visible and direct, but expensive.','Direct','£1.5bn',{budget:-1.5,housing:5,approval:1}],
+  ['Reform planning rules','Cheaper, but benefits take time to appear.','Long-term','£0.2bn',{budget:-.2,housing:4,economy:1}],
+  ['Target the worst-hit areas','Smaller programme, faster local impact.','Focused','£0.7bn',{budget:-.7,housing:3,approval:1}]
+ ]},
+ {place:'London',marker:['56%','72%'],city:'cityLondon',kind:'BUDGET',title:'The Chancellor wants a clear priority',desc:'There is not enough room to fund everything. Pick the area that gets protected this year.',adviser:['DT','Chancellor','“Choose what matters most. Everything else gets tighter.”'],news:'The Treasury prepares the government’s first spending plan.',choices:[
+  ['Protect public services','More money for health, schools and local services.','Services first','£2.0bn',{budget:-2,services:4,approval:1}],
+  ['Protect investment','Keep infrastructure and growth projects moving.','Growth first','£1.5bn',{budget:-1.5,economy:4,country:1}],
+  ['Protect the buffer','Keep money back for shocks later in the year.','Cautious','£0bn',{resilience:3,country:1}]
+ ]},
+ {place:'Cardiff',marker:['38%','67%'],city:'cityCardiff',kind:'WEATHER',title:'A major Atlantic storm is coming',desc:'Flooding is likely in Wales and western England. Emergency planners want a decision before landfall.',adviser:['LB','Cabinet Office','“Early preparation will cost money, but reacting afterwards may cost more.”'],news:'Weather warnings intensify across the west of Britain.',choices:[
+  ['Pre-position emergency support','Expensive preparation, lower risk.','Safer','£0.9bn',{budget:-.9,resilience:5,country:2}],
+  ['Focus only on highest-risk areas','A targeted middle option.','Balanced','£0.4bn',{budget:-.4,resilience:3,country:1}],
+  ['Wait and respond as needed','Preserves cash, but increases the risk of disruption.','Risky','£0bn',{resilience:-2,approval:-1}]
+ ]},
+ {place:'Manchester',marker:['45%','45%'],city:'cityManchester',kind:'INFRASTRUCTURE',title:'A new rail link is ready to approve',desc:'The Northern Connector would improve links between major cities, but it ties up money for years.',adviser:['RS','Transport Secretary','“This is the sort of project people will actually see on the map.”'],news:'Ministers debate whether to approve the Northern Connector.',choices:[
+  ['Approve the full project','Biggest long-term impact and biggest commitment.','Transformational','£3.0bn',{budget:-3,economy:4,country:2,project:true}],
+  ['Approve a smaller first phase','Less ambitious, but easier to deliver.','Practical','£1.5bn',{budget:-1.5,economy:2,country:1,project:true}],
+  ['Delay it','Keep the money for other priorities.','No commitment','£0bn',{approval:-1}]
+ ]},
+ {place:'London',marker:['56%','72%'],city:'cityLondon',kind:'PUBLIC MOOD',title:'Your first polling wobble',desc:'The public likes some of what you have done, but says the government still feels distant.',adviser:['JM','Communications Director','“Do something visible, or keep your head down and let delivery speak.”'],news:'New polling suggests voters want clearer signs of progress.',choices:[
+  ['Hold a national address','High visibility. It can reset the mood if the message lands.','Visible','£0bn',{approval:2}],
+  ['Tour regional projects','Less dramatic, but reinforces delivery.','Grounded','£0.1bn',{budget:-.1,approval:1,country:1}],
+  ['Ignore the noise','Stay focused on governing.','Steady','£0bn',{country:1}]
+ ]},
+ {dynamic:true,place:'Manchester',marker:['45%','38%'],city:'cityManchester',kind:'CONSEQUENCE',title:'The hospital decision comes back',desc:'Eight weeks in, the effects of your first major decision are becoming clearer.',adviser:['AM','Health Secretary',''],news:'The government faces questions about whether its health plan is working.'},
+ {place:'Birmingham',marker:['46%','56%'],city:'cityBirmingham',kind:'SCHOOLS',title:'Teacher shortages are getting worse',desc:'Several regions are struggling to recruit and retain enough teachers.',adviser:['SP','Education Secretary','“We can pay more, train more, or concentrate support where shortages are worst.”'],news:'Teacher shortages become the week’s biggest public-services story.',choices:[
+  ['Target pay in shortage areas','Fastest route to recruitment, but costly.','Fast','£1.0bn',{budget:-1,services:3,approval:1}],
+  ['Expand training places','Slower, but increases future supply.','Long-term','£0.5bn',{budget:-.5,services:2,country:1}],
+  ['Target the hardest-hit schools','Cheaper and focused.','Focused','£0.3bn',{budget:-.3,services:1,approval:1}]
+ ]},
+ {place:'Scotland',marker:['43%','23%'],city:null,kind:'ENERGY',title:'Energy prices jump',desc:'An external supply shock pushes prices higher just as winter approaches.',adviser:['DT','Chancellor','“We can cushion households, help industry, or preserve the buffer.”'],news:'Energy prices rise sharply after an external supply shock.',choices:[
+  ['Temporary household support','Popular and immediate, but expensive.','Immediate','£1.3bn',{budget:-1.3,approval:2}],
+  ['Target energy-intensive firms','Protects jobs and production.','Economic','£0.8bn',{budget:-.8,economy:3}],
+  ['Keep support tightly targeted','Cheapest, but leaves more households exposed.','Cautious','£0.3bn',{budget:-.3,approval:-1,resilience:1}]
+ ]},
+ {place:'London',marker:['56%','72%'],city:'cityLondon',kind:'PARLIAMENT',title:'Your housing bill reaches the Commons',desc:'The bill can pass, but only if you decide how much compromise you are willing to accept.',adviser:['CW','Chief Whip','“We have the votes for a smaller bill. The full version is much tighter.”'],news:'MPs prepare for the government’s first major Commons test.',choices:[
+  ['Push the full bill','More impact if it passes, but politically harder.','Bold','£0bn',{housing:4,approval:1,country:1}],
+  ['Accept a compromise','Less ambitious, but much easier to pass.','Safe','£0bn',{housing:2,country:1}],
+  ['Delay the vote','Avoid the risk this week, but lose momentum.','Delay','£0bn',{approval:-1}]
+ ]},
+ {place:'London',marker:['56%','72%'],city:'cityLondon',kind:'FINAL WEEK',title:'Your first chapter is ending',desc:'Twelve weeks in, the public can now see the outline of your government. Make one final call before the review.',adviser:['LB','Cabinet Secretary','“You cannot do everything. Decide what you want this government to be known for.”'],news:'The government approaches its first major review.',choices:[
+  ['Double down on public services','Commit the next phase to visible service improvement.','Services','£1.0bn',{budget:-1,services:3,approval:1}],
+  ['Double down on growth','Prioritise investment and economic capacity.','Growth','£1.0bn',{budget:-1,economy:3,country:1}],
+  ['Rebuild the fiscal buffer','Slow spending and prepare for future shocks.','Stability','£0bn',{resilience:3,country:1}]
+ ]}
+];
+const $=s=>document.querySelector(s);const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+function countryCalc(){state.country=Math.round((state.services+state.economy+state.housing+state.resilience)/4)}
+function statusText(v){return v>=72?'strong':v>=60?'stable':v>=50?'under pressure':'struggling'}
+function renderStats(){countryCalc();$('#approval').textContent=Math.round(state.approval)+'%';$('#budget').textContent='£'+state.budget.toFixed(1).replace('.0','')+'bn';$('#countryScore').textContent=state.country;$('#countrySub').textContent=statusText(state.country);$('#approvalSub').textContent=state.approval>=60?'positive':state.approval>=50?'steady':'under pressure';}
+function renderWeekDots(){const d=$('#weekDots');d.innerHTML='';for(let i=1;i<=12;i++){const x=document.createElement('i');if(i<state.week)x.className='done';if(i===state.week)x.className='now';d.append(x)}$('#weekSmall').textContent=Math.min(state.week,12)+' / 12'}
+function dynamicHealth(ev){let c=state.healthChoice||'flow';let desc,adviser,choices;
+ if(c==='temporary'){desc='The temporary beds worked, but pressure is returning. You bought time rather than solving the underlying bottleneck.';adviser='“We need a permanent answer now, Prime Minister.”';choices=[['Make the extra capacity permanent','Costs more now, but fixes the weakness you postponed.','Finish the job','£1.4bn',{budget:-1.4,services:4,country:1}],['Extend the temporary deal','Cheaper again, but the same problem may return.','Buy more time','£0.6bn',{budget:-.6,services:2}],['Shift to community care','Change direction and attack the discharge bottleneck.','Change course','£0.8bn',{budget:-.8,services:3}]]}
+ else if(c==='permanent'){desc='The new capacity is beginning to come online. Waiting pressure has eased, but staffing has become the new constraint.';adviser='“The beds are there. Now we need enough people to run them.”';choices=[['Fund a recruitment package','Strengthen staffing and protect the investment.','Complete the plan','£0.8bn',{budget:-.8,services:4,approval:1}],['Redeploy existing staff','Cheaper, but other regions feel the strain.','Trade-off','£0.2bn',{budget:-.2,services:2,country:-1}],['Hold course','Let the system adjust without more spending.','Wait','£0bn',{services:1}]]}
+ else{desc='Discharge delays have fallen and the pressure is easing. The approach was less visible, but it seems to be working.';adviser='“We have reduced the bottleneck. A modest capacity boost could lock in the gains.”';choices=[['Add a modest capacity boost','Build on the improvement.','Build on success','£0.8bn',{budget:-.8,services:4,approval:1}],['Expand community care further','Double down on the approach that worked.','Stay the course','£0.5bn',{budget:-.5,services:3,country:1}],['Bank the improvement','Spend nothing more for now.','Stop here','£0bn',{services:1}]]}
+ return {...ev,desc,adviser:[ev.adviser[0],ev.adviser[1],adviser],choices};}
+function setMapMood(ev){document.querySelectorAll('.city').forEach(x=>x.classList.remove('hot','warn','active'));if(ev.city){const c=document.getElementById(ev.city);c.classList.add('hot','active')}const marker=$('#marker');marker.style.left=ev.marker[0];marker.style.top=ev.marker[1];marker.textContent=ev.kind==='WEATHER'?'☂':ev.kind==='BUDGET'?'£':ev.kind==='PARLIAMENT'?'♙':'!';
+ const hue=Math.max(0,Math.min(1,(state.country-45)/35)); const bad=`rgba(212,91,78,${.26*(1-hue)})`,good=`rgba(77,139,105,${.18*hue})`;document.querySelectorAll('.region').forEach((r,i)=>r.style.fill=i===1?bad:good);if(state.project)$('#projectLine').classList.add('live');}
+function renderDecision(){let ev=events[state.week-1];if(ev.dynamic)ev=dynamicHealth(ev);setMapMood(ev);updateHelpers();$('#weekText').textContent='Week '+state.week;$('#dateText').textContent=['January','January','January','February','February','February','February','March','March','March','March','April'][state.week-1]+', Year 1';$('#newsText').textContent=ev.news;renderWeekDots();
+ const d=$('#decision');d.innerHTML=`<div class="decision-head"><div class="decision-kicker">${ev.kind} · ${ev.place}</div><h2>${ev.title}</h2><div class="decision-desc">${ev.desc}</div><div class="adviser"><div class="avatar">${ev.adviser[0]}</div><div><b>${ev.adviser[1]}</b>${ev.adviser[2]}</div></div></div><div class="choice-header">CHOOSE ONE RESPONSE</div><div class="choices">${ev.choices.map((c,i)=>`<button class="choice" data-i="${i}"><b>${c[0]}</b><p>${c[1]}</p><div class="choice-foot"><span class="tag">${c[2]}</span><span class="cost">${c[3]}</span><span class="choose">Click to choose →</span></div></button>`).join('')}</div>`;
+ d.querySelectorAll('.choice').forEach(b=>b.onclick=()=>choose(ev,Number(b.dataset.i)));}
+function apply(e){for(const [k,v] of Object.entries(e)){if(k==='project'){state.project=v;continue}if(typeof state[k]==='number')state[k]+=v}state.approval=clamp(state.approval,20,85);state.services=clamp(state.services,25,90);state.economy=clamp(state.economy,25,90);state.housing=clamp(state.housing,25,90);state.resilience=clamp(state.resilience,25,90);state.budget=Math.max(0,state.budget);countryCalc()}
+function choose(ev,i){hideHelpers();const c=ev.choices[i];apply(c[4]);if(state.week===1)state.healthChoice=c[5]||['temporary','permanent','flow'][i];state.choiceLog.push({week:state.week,title:ev.title,choice:c[0]});renderStats();flash(c[0]);$('#decision').innerHTML=`<div class="decision-done"><div><div class="check">✓</div><h3>Decision made.</h3><p>${outcomeText(c[4])}</p><button class="primary next" id="nextBtn">${state.week===12?'See your 12-week review':'Next week →'}</button></div></div>`;$('#nextBtn').onclick=nextWeek;}
+function outcomeText(e){let bits=[];if((e.services||0)>0)bits.push('public services improve');if((e.economy||0)>0)bits.push('the economy gets a lift');if((e.housing||0)>0)bits.push('housing pressure eases');if((e.resilience||0)>0)bits.push('the country becomes more resilient');if((e.approval||0)>0)bits.push('public approval rises');if((e.approval||0)<0)bits.push('approval takes a hit');if((e.budget||0)<0)bits.push('the Treasury has less room');return bits.length?'You should now see '+bits.join(', ')+'.':'The immediate impact is limited. The consequences may show up later.'}
+function nextWeek(){if(state.week>=12){showReview();return}state.week++;renderDecision();renderStats();}
+function flash(t){$('#flashText').textContent=t;$('#flash').classList.add('show');setTimeout(()=>$('#flash').classList.remove('show'),900)}
+function showReview(){renderStats();$('#reviewApproval').textContent=Math.round(state.approval)+'%';$('#reviewBudget').textContent='£'+state.budget.toFixed(1).replace('.0','')+'bn';$('#reviewCountry').textContent=state.country;const best=[['public services',state.services],['the economy',state.economy],['housing',state.housing],['national resilience',state.resilience]].sort((a,b)=>b[1]-a[1])[0][0];const proj=state.project?'You also approved a new northern rail project, which has begun appearing on the map. ':'You kept the major rail project on hold. ';$('#reviewStory').innerHTML=`Your strongest area is <b>${best}</b>. ${proj}Your first health decision also came back later in the term, so the game remembered the trade-off rather than simply awarding points. You made <b>${state.choiceLog.length}</b> major decisions in twelve weeks.`;$('#review').classList.remove('hidden')}
+function start(){state.week=1;$('#start').classList.add('hidden');$('#game').classList.remove('hidden');renderStats();renderDecision()}
+function pulseDecision(){const box=$('#decision');box.classList.add('guide');setTimeout(()=>box.classList.remove('guide'),900)}
+function hideHelpers(){['#mapHelp','#panelHelp'].forEach(s=>{const el=$(s); if(el) el.style.display='none'})}
+function updateHelpers(){const show=state.week===1 && !state.choiceLog.length; const mh=$('#mapHelp'), ph=$('#panelHelp'); if(mh) mh.style.display=show?'block':'none'; if(ph) ph.style.display=show?'block':'none';}
+$('#marker').onclick=()=>pulseDecision(); document.querySelectorAll('.city').forEach(el=>el.onclick=()=>pulseDecision());
+$('#startBtn').onclick=start;$('#howBtn').onclick=()=>alert('One week, one big decision.\n\n1. Look for the red problem marker on the map.\n2. Click one of the three response options on the right.\n3. Read the result.\n4. Click Next week.\n\nThe deeper simulation stays in the background until it matters.');
+renderWeekDots();
