@@ -1,1 +1,78 @@
-placeholder
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Your Move, Prime Minister</title>
+<meta name="description" content="A simple, living simulation about running Britain." />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<section class="start" id="start">
+  <div class="start-card">
+    <div class="start-copy">
+      <div class="brand"><i>♜</i> YOUR MOVE, PRIME MINISTER</div>
+      <div class="eyebrow">RUN BRITAIN. ONE WEEK AT A TIME.</div>
+      <h1>Five years.<br><span>One country.</span></h1>
+      <p>Every week, one big problem lands on your desk. Click one of three clear responses, watch Britain react, and live with what comes next.</p>
+      <div class="start-actions"><button class="primary" id="startBtn">Take office →</button><button class="secondary" id="howBtn">How it works</button></div>
+      <p class="tiny">Fictional, illustrative game. The simulation is designed for play, not as a forecast of real-world policy effects.</p>
+    </div>
+    <div class="start-map">
+      <div class="sun"></div>
+      <div class="preview-map">
+        <svg viewBox="0 0 700 560"><path d="M354 22 C381 29 402 45 416 70 C429 93 429 120 414 142 C443 162 458 193 450 222 C474 243 484 272 472 302 C495 325 498 356 479 382 C494 404 493 436 475 456 C455 478 429 484 418 511 C405 540 381 556 352 552 C327 549 314 530 299 512 C281 491 256 485 235 467 C208 444 195 413 200 385 C205 364 220 347 235 333 C217 313 211 286 225 263 C210 244 208 213 224 191 C213 168 219 138 241 121 C238 96 249 69 273 55 C295 42 320 39 339 26 C345 22 349 21 354 22 Z" fill="#f3ecd4" stroke="#6f9b8d" stroke-width="2"/><path d="M304 94C324 145 332 192 336 242S339 356 304 472" fill="none" stroke="#b09d6d" stroke-width="5" opacity=".5"/><path d="M297 95C317 145 325 193 329 243S331 354 296 470" fill="none" stroke="#315d51" stroke-width="2.3" stroke-dasharray="8 7"/></svg>
+        <div class="preview-pin pp1">Manchester<small>Hospital pressure</small></div><div class="preview-pin pp2">London<small>Commons vote</small></div><div class="preview-pin pp3">Wales<small>Flood warning</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main class="game hidden" id="game">
+  <div class="topbar">
+    <div class="logo"><i>♜</i> YOUR MOVE, PRIME MINISTER</div>
+    <div class="week-pill"><b id="weekText">Week 1</b><span id="dateText">January, Year 1</span></div>
+    <div class="stats">
+      <div class="stat"><span>APPROVAL</span><b id="approval">56%</b><small id="approvalSub">steady</small></div>
+      <div class="stat"><span>BUDGET</span><b id="budget">£22bn</b><small>room to act</small></div>
+      <div class="stat"><span>COUNTRY</span><b id="countryScore">63</b><small id="countrySub">stable</small></div>
+    </div>
+  </div>
+
+  <section class="world">
+    <div class="map-wrap">
+      <svg class="uk" viewBox="0 0 700 560" aria-label="Stylised map of Britain">
+        <defs><clipPath id="clip"><path d="M354 22 C381 29 402 45 416 70 C429 93 429 120 414 142 C443 162 458 193 450 222 C474 243 484 272 472 302 C495 325 498 356 479 382 C494 404 493 436 475 456 C455 478 429 484 418 511 C405 540 381 556 352 552 C327 549 314 530 299 512 C281 491 256 485 235 467 C208 444 195 413 200 385 C205 364 220 347 235 333 C217 313 211 286 225 263 C210 244 208 213 224 191 C213 168 219 138 241 121 C238 96 249 69 273 55 C295 42 320 39 339 26 C345 22 349 21 354 22 Z"/></clipPath></defs>
+        <path class="land" d="M354 22 C381 29 402 45 416 70 C429 93 429 120 414 142 C443 162 458 193 450 222 C474 243 484 272 472 302 C495 325 498 356 479 382 C494 404 493 436 475 456 C455 478 429 484 418 511 C405 540 381 556 352 552 C327 549 314 530 299 512 C281 491 256 485 235 467 C208 444 195 413 200 385 C205 364 220 347 235 333 C217 313 211 286 225 263 C210 244 208 213 224 191 C213 168 219 138 241 121 C238 96 249 69 273 55 C295 42 320 39 339 26 C345 22 349 21 354 22 Z"/>
+        <g clip-path="url(#clip)">
+          <polygon id="rScotland" class="region" points="190,0 490,0 490,180 188,190"/>
+          <polygon id="rNorth" class="region" points="170,165 500,158 500,310 165,325"/>
+          <polygon id="rMidlands" class="region" points="165,306 500,300 490,420 160,438"/>
+          <polygon id="rSouth" class="region" points="150,418 510,395 510,570 140,570"/>
+        </g>
+        <path class="route" d="M304 94C324 145 332 192 336 242S339 356 304 472"/>
+        <path class="rail" d="M297 95C317 145 325 193 329 243S331 354 296 470"/>
+        <path id="projectLine" class="project" d="M299 468C308 420 318 370 326 310S323 245 307 198"/>
+      </svg>
+      <div class="city good" style="left:44%;top:22%"><div class="dot"></div><label>Glasgow</label></div>
+      <div class="city" id="cityManchester" style="left:44%;top:41%"><div class="dot"></div><label>Manchester</label></div>
+      <div class="city" id="cityBirmingham" style="left:46%;top:56%"><div class="dot"></div><label>Birmingham</label></div>
+      <div class="city" id="cityCardiff" style="left:37%;top:67%"><div class="dot"></div><label>Cardiff</label></div>
+      <div class="city" id="cityLondon" style="left:56%;top:74%"><div class="dot"></div><label>London</label></div>
+      <button class="issue-marker" id="marker" style="left:45%;top:38%" aria-label="Open this week's issue">!</button>
+      <div class="map-help" id="mapHelp">This marker shows this week’s problem</div>
+      <div class="panel-help" id="panelHelp">Click one of these 3 response options →</div>
+    </div>
+    <div class="legend"><span><i class="r"></i>needs attention</span><span><i class="a"></i>under pressure</span><span><i class="g"></i>improving</span></div>
+    <div class="news"><i></i><div><b>WHAT BRITAIN IS TALKING ABOUT</b><span id="newsText">Hospital waiting pressure is building across the North West.</span></div></div>
+  </section>
+
+  <aside class="decision" id="decision"></aside>
+  <div class="weekbar"><small id="weekSmall">1 / 12</small><div class="dots" id="weekDots"></div></div>
+</main>
+
+<div class="flash" id="flash"><div class="flash-card" id="flashText">Decision made</div></div>
+<div class="review hidden" id="review"><div class="review-card"><small>FIRST 12 WEEKS</small><h2>Your government is taking shape.</h2><p>This is the story your decisions created.</p><div class="review-grid"><div><span>APPROVAL</span><b id="reviewApproval">0%</b></div><div><span>BUDGET LEFT</span><b id="reviewBudget">£0bn</b></div><div><span>COUNTRY</span><b id="reviewCountry">0</b></div></div><div class="story" id="reviewStory"></div><button class="primary" style="margin-top:20px" onclick="location.reload()">Play again</button></div></div>
+<script src="app.js"></script>
+</body>
+</html>
