@@ -1,3 +1,3 @@
 (()=>{const p=document.querySelector('.preview-map');if(p){Object.assign(p.style,{inset:'auto',left:'50%',top:'50%',transform:'translate(-50%,-50%)',width:'min(88%,520px)',height:'auto',aspectRatio:'6 / 7',overflow:'visible'});const s=p.querySelector('svg');if(s)Object.assign(s.style,{position:'absolute',inset:'0',width:'100%',height:'100%',overflow:'visible'});const set=(q,l,t,tr)=>{const e=document.querySelector(q);if(e)Object.assign(e.style,{left:l,top:t,transform:tr,zIndex:'5'});};set('.pp1','53.7%','69.3%','translate(-50%,-118%)');set('.pp2','65.7%','85%','translate(8%,-52%)');set('.pp3','42.5%','80.5%','translate(-108%,-52%)');}
-const script=document.createElement('script');script.src='interaction-fix.js?v=2';document.body.appendChild(script);
+const script=document.createElement('script');script.src='interaction-fix.js?v=3';document.body.appendChild(script);
 })();
